@@ -10,7 +10,15 @@ import { API, Storage } from 'aws-amplify';
 // Started off with a notes app from AWS tutorial and amended to required function
 // Has authentication and option to login can be added using social media / google or amazon accounts
 
-const initialFormState = { name: '', description: '' }
+const initialFormState = { 
+  name: '', 
+  description: '',
+  genre: '',
+  releaseDate: '',
+  players: '',
+  publisher: '',
+  image: ''
+ }
 
 export default function App() {
 
