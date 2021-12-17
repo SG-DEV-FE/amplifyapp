@@ -14,7 +14,7 @@ const initialFormState = {
   name: '', 
   description: '',
   genre: '',
-  players: Int,
+  players: number,
   publisher: '',
   image: ''
  }
