@@ -25,6 +25,13 @@ export default function App() {
   //  fecth tiles in library
   async function fetchNotes() {
     const apiData = await API.graphql({ query: listNotes });
+    const notesFromAPI = apiData.data.listNotes.item;
+    await Promise.all(notesFromAPI.map(async note => {
+      if (note.image) {
+        const image = await Storage.get(note.image);
+        note.image = image;
+      }
+    }))
     setNotes(apiData.data.listNotes.items);
   }
 
