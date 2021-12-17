@@ -17,7 +17,7 @@ const initialFormState = {
   releaseDate: '',
   players: '',
   publisher: '',
-  file: ''
+  image: '',
  }
 
 export default function App() {
