@@ -13,12 +13,7 @@ import { API, Storage } from 'aws-amplify';
 const initialFormState = { 
   name: '', 
   description: '',
-  genre: '',
-  releaseDate: '',
-  players: '',
-  publisher: '',
-  file: ''
- }
+}
 
 export default function App() {
 
