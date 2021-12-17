@@ -6,9 +6,13 @@ import { listNotes } from './graphql/queries';
 import { createNote as createNoteMutation, deleteNote as deleteNoteMutation } from './graphql/mutations'
 import { API } from 'aws-amplify';
 
+
+
+
 const initialFormState = { name: '', description: '' }
 
-function App() {
+export default function App() {
+
 
   const [notes, setNotes] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
@@ -37,9 +41,9 @@ function App() {
 
   return (
     <Authenticator>
-    {({ signOut, user }) => (
-
-    <div className='App'>
+      {({ signOut, user }) => (
+    <main>
+      <div className='App'>
       <h1>My Notes App</h1>
       <input 
         onChange={e => setFormData({ ...formData, 'name': e.target.value })}
@@ -66,11 +70,9 @@ function App() {
         }
       </div>
       <button onClick={signOut}>Sign out</button>
-    </div>
-    
-     )}
-     </Authenticator>
+      </div>
+    </main>
+      )}
+    </Authenticator>
   );
 }
-
-export default Authenticator(App); 
