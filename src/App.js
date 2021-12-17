@@ -17,7 +17,7 @@ const initialFormState = {
   releaseDate: '',
   players: '',
   publisher: '',
-  image: ''
+  file: ''
  }
 
 export default function App() {
@@ -97,7 +97,7 @@ export default function App() {
         type="text"
         onChange={e => setFormData({...formData, 'genre': e.target.value})}
         placeholder='Title Genre'
-        value={formData.Genre}
+        value={formData.genre}
       />
 
       <input
