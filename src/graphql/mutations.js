@@ -10,6 +10,10 @@ export const createNote = /* GraphQL */ `
       id
       name
       description
+      genre
+      releaseDate
+      players
+      publisher
       image
       createdAt
       updatedAt
@@ -25,6 +29,10 @@ export const updateNote = /* GraphQL */ `
       id
       name
       description
+      genre
+      releaseDate
+      players
+      publisher
       image
       createdAt
       updatedAt
@@ -40,6 +48,10 @@ export const deleteNote = /* GraphQL */ `
       id
       name
       description
+      genre
+      releaseDate
+      players
+      publisher
       image
       createdAt
       updatedAt

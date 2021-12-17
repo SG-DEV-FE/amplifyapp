@@ -7,6 +7,10 @@ export const onCreateNote = /* GraphQL */ `
       id
       name
       description
+      genre
+      releaseDate
+      players
+      publisher
       image
       createdAt
       updatedAt
@@ -19,6 +23,10 @@ export const onUpdateNote = /* GraphQL */ `
       id
       name
       description
+      genre
+      releaseDate
+      players
+      publisher
       image
       createdAt
       updatedAt
@@ -31,6 +39,10 @@ export const onDeleteNote = /* GraphQL */ `
       id
       name
       description
+      genre
+      releaseDate
+      players
+      publisher
       image
       createdAt
       updatedAt

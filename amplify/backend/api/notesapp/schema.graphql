@@ -6,5 +6,9 @@ type Note @model {
   id: ID!
   name: String!
   description: String
+  genre: String
+  releaseDate: AWSDate
+  players: Int
+  publisher: String
   image: String
 }

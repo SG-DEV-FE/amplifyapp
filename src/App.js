@@ -65,15 +65,45 @@ export default function App() {
       <div className='App'>
       <h1>My Notes App</h1>
       <input 
+        type="text"
         onChange={e => setFormData({ ...formData, 'name': e.target.value })}
-        placeholder='Note name'
+        placeholder='Title Name'
         value={formData.name}
       />
 
       <input 
+        type="text"
         onChange={e => setFormData({...formData, 'description': e.target.value})}
-        placeholder='Note description'
+        placeholder='System Platform'
         value={formData.description}
+      />
+
+      <input 
+        type="text"
+        onChange={e => setFormData({...formData, 'genre': e.target.value})}
+        placeholder='Title Genre'
+        value={formData.Genre}
+      />
+
+      <input
+        type="date" 
+        onChange={e => setFormData({...formData, 'releaseDate': e.target.value})}
+        placeholder='Release Date'
+        value={formData.releaseDate}
+      />
+
+      <input
+        type="number"
+        onChange={e => setFormData({...formData, 'players': e.target.value})}
+        placeholder='No. of players'
+        value={formData.players}
+      />
+
+      <input
+        type="text"
+        onChange={e => setFormData({...formData, 'publisher': e.target.value})}
+        placeholder='Publisher'
+        value={formData.publisher}
       />
 
       <input
@@ -88,6 +118,10 @@ export default function App() {
             <div key={note.id || note.name}>
               <h2>{note.name}</h2>
               <p>{note.description}</p>
+              <p>{note.genre}</p>
+              <p>{note.releaseDate}</p>
+              <p>{note.players}</p>
+              <p>{note.publisher}</p>
               {
                 note.image && <img src={note.image} style={{width: 400}} />
               }
