@@ -13,7 +13,12 @@ import { API, Storage } from 'aws-amplify';
 const initialFormState = { 
   name: '', 
   description: '',
-}
+  genre: '',
+  releaseDate: '',
+  players: '',
+  publisher: '',
+  file: ''
+ }
 
 export default function App() {
 
@@ -28,7 +33,7 @@ export default function App() {
   //  fecth tiles in library
   async function fetchNotes() {
     const apiData = await API.graphql({ query: listNotes });
-    const notesFromAPI = apiData.data.listNotes.item;
+    const notesFromAPI = apiData.data.listNotes.items;
     await Promise.all(notesFromAPI.map(async note => {
       if (note.image) {
         const image = await Storage.get(note.image);
