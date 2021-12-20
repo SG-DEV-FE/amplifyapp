@@ -6,10 +6,19 @@ import { listNotes } from './graphql/queries';
 import { createNote as createNoteMutation, deleteNote as deleteNoteMutation } from './graphql/mutations'
 import { API, Storage } from 'aws-amplify';
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faPlusSquare } from '@fortawesome/free-solid-svg-icons'
+import { faPlusSquare, faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionItemHeading,
+  AccordionItemButton,
+  AccordionItemPanel,
+} from 'react-accessible-accordion';
 
-library.add(faPlusSquare)
+import 'react-accessible-accordion/dist/fancy-example.css';
+
+library.add(faPlusSquare, faChevronDown)
 // Started off with a notes app from AWS tutorial and amended to required function
 // Has authentication and option to login can be added using social media / google or amazon accounts
 
@@ -28,10 +37,6 @@ export default function App() {
   const [notes, setNotes] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
   const [isActive, setActive] = useState("false");
-
-  const toggleVisiblity = () => {
-    setActive(!isActive);  
-  };
 
   useEffect(() => {
     fetchNotes();
@@ -151,16 +156,81 @@ export default function App() {
                   note.image && <img src={note.image} className='w-screen md:w-64 h-64 object-cover rounded' />
                 }
                 <h2 className='py-3 text-white'>{note.name}</h2>
-                <button type="button" class="m-2 px-6 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300" onClick={toggleVisiblity}>view game info</button>
-                <div className={isActive ? 'hidden' : 'show' }>
+                {/* <button 
+                  type="button" 
+                  class="m-2 px-6 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300"
+                  data-bs-toggle="collapse"
+                  data-bs-target={note.id}
+                  aria-expanded="true"
+                  aria-controls={note.id}
+                >
+                  view game info
+                </button> */}
+                {/* <div className="collapse show" id={note.id} aria-labelledby={note.id} data-bs-parent={note.id}>
                   <p className='text-white'>{note.description}</p>
                   <p className='text-white'>{note.genre}</p>
                   <p className='text-white'>{note.releaseDate}</p>
                   <p className='text-white'>{note.players}</p>
                   <p className='text-white'>{note.publisher}</p>
-                </div>
-                
-                
+                </div> */}
+
+                <Accordion allowZeroExpanded>
+                  <AccordionItem key={note.id}>
+                      <AccordionItemHeading className='text-white'>
+                          <AccordionItemButton className='button text-white text-left'>
+                            Platform supported <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
+                          </AccordionItemButton>
+                      </AccordionItemHeading>
+                      <AccordionItemPanel>
+                          <p className='text-white'>
+                              {note.description}
+                          </p>
+                      </AccordionItemPanel>
+
+                      <AccordionItemHeading className='text-white'>
+                          <AccordionItemButton className='button text-white text-left'>
+                            Genre <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
+                          </AccordionItemButton>
+                      </AccordionItemHeading>
+                      <AccordionItemPanel>
+                          <p className='text-white'>
+                              {note.genre}
+                          </p>
+                      </AccordionItemPanel>
+
+                      <AccordionItemHeading className='text-white'>
+                          <AccordionItemButton className='button text-white text-left'>
+                            Release date <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
+                          </AccordionItemButton>
+                      </AccordionItemHeading>
+                      <AccordionItemPanel>
+                          <p className='text-white'>
+                              {note.releaseDate}
+                          </p>
+                      </AccordionItemPanel>
+                      <AccordionItemHeading className='text-white'>
+                          <AccordionItemButton className='button text-white text-left'>
+                            Max. Players <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
+                          </AccordionItemButton>
+                      </AccordionItemHeading>
+                      <AccordionItemPanel>
+                          <p className='text-white'>
+                              {note.players}
+                          </p>
+                      </AccordionItemPanel>
+                      <AccordionItemHeading className='text-white'>
+                          <AccordionItemButton className='button text-white text-left'>
+                            Publisher <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
+                          </AccordionItemButton>
+                      </AccordionItemHeading>
+                      <AccordionItemPanel>
+                          <p className='text-white'>
+                              {note.description}
+                          </p>
+                      </AccordionItemPanel>
+
+                  </AccordionItem>
+                </Accordion>
                 {/* <button onClick={() => deleteNote(note)}>Delete note</button> */}
               </div>
             ))
