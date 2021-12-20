@@ -27,6 +27,11 @@ export default function App() {
   
   const [notes, setNotes] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
+  const [isActive, setActive] = useState("false");
+
+  const toggleVisiblity = () => {
+    setActive(!isActive);  
+  };
 
   useEffect(() => {
     fetchNotes();
@@ -146,11 +151,15 @@ export default function App() {
                   note.image && <img src={note.image} className='w-screen md:w-64 h-64 object-cover rounded' />
                 }
                 <h2 className='py-3 text-white'>{note.name}</h2>
-                {/* <p>{note.description}</p>
-                <p>{note.genre}</p>
-                <p>{note.releaseDate}</p>
-                <p>{note.players}</p>
-                <p>{note.publisher}</p> */}
+                <button type="button" class="m-2 px-6 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300" onClick={toggleVisiblity}>view game info</button>
+                <div className={isActive ? 'hidden' : 'show' }>
+                  <p className='text-white'>{note.description}</p>
+                  <p className='text-white'>{note.genre}</p>
+                  <p className='text-white'>{note.releaseDate}</p>
+                  <p className='text-white'>{note.players}</p>
+                  <p className='text-white'>{note.publisher}</p>
+                </div>
+                
                 
                 {/* <button onClick={() => deleteNote(note)}>Delete note</button> */}
               </div>
@@ -166,8 +175,7 @@ export default function App() {
       <div className='flex justify-center items-center mx-auto py-8'>
         
         <div class="md:grid md:grid-cols-12 md:gap-6 w-2/4 drop-shadow-lg">
-          <div class="mt-5 md:mt-0 md:col-span-12">
-            <form>
+          <div class="mt-5 md:mt-0 md:col-span-12">          
               <div class="shadow sm:rounded-md sm:overflow-hidden">
                 <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
                   <div class="grid grid-cols-12 gap-6">
@@ -323,7 +331,6 @@ export default function App() {
                         
                       </div>
                     </div>
-                  </form>
                 </div>
               </div>
             </div> 
