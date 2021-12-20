@@ -5,7 +5,7 @@ import '@aws-amplify/ui-react/styles.css';
 import { listNotes } from './graphql/queries';
 import { createNote as createNoteMutation, deleteNote as deleteNoteMutation } from './graphql/mutations'
 import { API, Storage } from 'aws-amplify';
-
+import { Transition } from "@headlessui/react";
 
 // Started off with a notes app from AWS tutorial and amended to required function
 // Has authentication and option to login can be added using social media / google or amazon accounts
@@ -22,7 +22,7 @@ const initialFormState = {
 
 export default function App() {
 
-
+  const [isOpen, setIsOpen] = useState(false);
   const [notes, setNotes] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
 
@@ -76,6 +76,176 @@ export default function App() {
   return (
     <Authenticator>
       {({ signOut, user }) => (
+        <>
+    
+    
+      <nav className="bg-white-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <a className="h-8 w-8" href="https://www.playstation.com" aria-label="PlayStation.com">
+                  <svg class="shared-nav-ps-logo" width="50px" height="50px" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50">
+                    <g>
+                      <g>
+                        <path d="M5.8,32.1C4.3,33.1,4.8,35,8,35.9c3.3,1.1,6.9,1.4,10.4,0.8c0.2,0,0.4-0.1,0.5-0.1v-3.4l-3.4,1.1
+                    c-1.3,0.4-2.6,0.5-3.9,0.2c-1-0.3-0.8-0.9,0.4-1.4l6.9-2.4V27l-9.6,3.3C8.1,30.7,6.9,31.3,5.8,32.1z M29,17.1v9.7
+                    c4.1,2,7.3,0,7.3-5.2c0-5.3-1.9-7.7-7.4-9.6C26,11,23,10.1,20,9.5v28.9l7,2.1V16.2c0-1.1,0-1.9,0.8-1.6C28.9,14.9,29,16,29,17.1z
+                      M42,29.8c-2.9-1-6-1.4-9-1.1c-1.6,0.1-3.1,0.5-4.5,1l-0.3,0.1v3.9l6.5-2.4c1.3-0.4,2.6-0.5,3.9-0.2c1,0.3,0.8,0.9-0.4,1.4
+                    l-10,3.7V40L42,34.9c1-0.4,1.9-0.9,2.7-1.7C45.4,32.2,45.1,30.8,42,29.8z" fill="#0070d1"></path>
+                      </g>
+                    </g>
+                  </svg>
+                </a>
+                {/* <img
+                  className=""
+                  src="https://tailwindui.com/img/logos/workflow-mark-indigo-500.svg"
+                  alt="Workflow"
+                /> */}
+              </div>
+              <div className="hidden md:block">
+                <div className="ml-10 flex items-baseline space-x-4">
+                  <a
+                    href="#"
+                    className=" hover:bg-gray-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Dashboard
+                  </a>
+
+                  <a
+                    href="#"
+                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Team
+                  </a>
+
+                  <a
+                    href="#"
+                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Projects
+                  </a>
+
+                  <a
+                    href="#"
+                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Calendar
+                  </a>
+
+                  <a
+                    href="#"
+                    className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Reports
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div className="-mr-2 flex md:hidden">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                type="button"
+                className="bg-white-900 inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-blue-800 focus:ring-white"
+                aria-controls="mobile-menu"
+                aria-expanded="false"
+              >
+                <span className="sr-only">Open main menu</span>
+                {!isOpen ? (
+                  <svg
+                    className="block h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="block h-6 w-6"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <Transition
+          show={isOpen}
+          enter="transition ease-out duration-100 transform"
+          enterFrom="opacity-0 scale-95"
+          enterTo="opacity-100 scale-100"
+          leave="transition ease-in duration-75 transform"
+          leaveFrom="opacity-100 scale-100"
+          leaveTo="opacity-0 scale-95"
+        >
+          {(ref) => (
+            <div className="md:hidden" id="mobile-menu">
+              <div ref={ref} className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a
+                  href="#"
+                  className="hover:bg-gray-700 text-white block px-3 py-2 rounded-md text-base font-medium"
+                >
+                  Dashboard
+                </a>
+
+                <a
+                  href="#"
+                  className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                >
+                  Team
+                </a>
+
+                <a
+                  href="#"
+                  className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                >
+                  Projects
+                </a>
+
+                <a
+                  href="#"
+                  className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                >
+                  Calendar
+                </a>
+
+                <a
+                  href="#"
+                  className="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                >
+                  Reports
+                </a>
+              </div>
+            </div>
+          )}
+        </Transition>
+      </nav>
+
+      
+      
+    
+
+
     <main>
       <div className='App'>
       <h1>My Notes App</h1>
@@ -148,6 +318,7 @@ export default function App() {
       <button onClick={signOut}>Sign out</button>
       </div>
     </main>
+    </>
       )}
     </Authenticator>
   );
