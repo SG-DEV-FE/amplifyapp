@@ -121,10 +121,19 @@ export default function App() {
     <main>
       <div className='App'>
       {/* main intro */}
-      
-      <h1>My Notes App</h1>
+      <div className='container flex justify-center align-center flex-col py-8 mx-auto'>
+      <h1 className='text-2xl text-slate-800'>Welcome to your game libray</h1>
+      <p className='text-blue-500 uppercase tracking-widest'>play has no limits</p>
+
+      <p className='pt-8'>
+        You can create a library of your games here.
+        <br />
+        you will need to ensure that you have the images available to upload.
+      </p>
+      </div>
 
 
+{/* TODO: move into form on modal */}
       <input 
         type="text"
         onChange={e => setFormData({ ...formData, 'name': e.target.value })}
@@ -171,27 +180,33 @@ export default function App() {
         type="file"
         onChange={onChange}
       />
-
       <button onClick={createNote}>Create Note</button>
-      <div style={{marginBottom: 30}}>
-        {
+
+
+
+      <div class="container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:content-start md:justify-start mx-auto">
+      {
           notes.map(note => (
-            <div key={note.id || note.name}>
-              <h2>{note.name}</h2>
-              <p>{note.description}</p>
+            <div key={note.id || note.name} className="w-64 rounded mx-auto">
+
+              {
+                note.image && <img src={note.image} className='w-64 h-64 object-cover rounded' />
+              }
+              <h2 className='py-3'>{note.name}</h2>
+              {/* <p>{note.description}</p>
               <p>{note.genre}</p>
               <p>{note.releaseDate}</p>
               <p>{note.players}</p>
-              <p>{note.publisher}</p>
-              {
-                note.image && <img src={note.image} style={{width: 400}} />
-              }
-              <button onClick={() => deleteNote(note)}>Delete note</button>
+              <p>{note.publisher}</p> */}
+              
+              {/* <button onClick={() => deleteNote(note)}>Delete note</button> */}
             </div>
           ))
         }
       </div>
-      <button onClick={signOut}>Sign out</button>
+      <div style={{marginBottom: 30}}>
+        
+      </div>
       </div>
     </main>
     </>
