@@ -174,7 +174,7 @@ export default function App() {
         </div>
       <div className='flex justify-center items-center mx-auto py-8'>
         
-        <div class="md:grid md:grid-cols-12 md:gap-6 w-2/4 drop-shadow-lg">
+        <div class="md:grid md:grid-cols-12 md:gap-6 w-full md:w-2/4 drop-shadow-lg">
           <div class="mt-5 md:mt-0 md:col-span-12">          
               <div class="shadow sm:rounded-md sm:overflow-hidden">
                 <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
