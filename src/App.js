@@ -8,15 +8,8 @@ import { API, Storage } from 'aws-amplify';
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faPlusSquare, faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  Accordion,
-  AccordionItem,
-  AccordionItemHeading,
-  AccordionItemButton,
-  AccordionItemPanel,
-} from 'react-accessible-accordion';
+import Modal from 'react-modal';
 
-import 'react-accessible-accordion/dist/fancy-example.css';
 
 library.add(faPlusSquare, faChevronDown)
 // Started off with a notes app from AWS tutorial and amended to required function
@@ -37,6 +30,7 @@ export default function App() {
   const [notes, setNotes] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
   const [isActive, setActive] = useState("false");
+  const [modalIsOpen, setIsOpen] = React.useState(false);
 
   useEffect(() => {
     fetchNotes();
@@ -83,6 +77,27 @@ export default function App() {
     fetchNotes();
   }
 
+  // Modal function
+
+  function openModal() {
+    setIsOpen(true);
+    setFormData({...formData.id})
+  }
+
+  function closeModal() {
+    setIsOpen(false);
+  }
+
+  const customStyles = {
+    content: {
+      top: '50%',
+      left: '50%',
+      right: 'auto',
+      bottom: 'auto',
+      marginRight: '-50%',
+      transform: 'translate(-50%, -50%)',
+    },
+  };
 
 
 
@@ -156,87 +171,33 @@ export default function App() {
                   note.image && <img src={note.image} className='w-screen md:w-64 h-64 object-cover rounded' />
                 }
                 <h2 className='py-3 text-white'>{note.name}</h2>
-                {/* <button 
+                <button 
                   type="button" 
-                  class="m-2 px-6 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300"
-                  data-bs-toggle="collapse"
-                  data-bs-target={note.id}
-                  aria-expanded="true"
-                  aria-controls={note.id}
+                  class="m-2 px-6 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300"                  
+                  onClick={() => openModal(note.id)}
                 >
                   view game info
-                </button> */}
-                {/* <div className="collapse show" id={note.id} aria-labelledby={note.id} data-bs-parent={note.id}>
-                  <p className='text-white'>{note.description}</p>
-                  <p className='text-white'>{note.genre}</p>
-                  <p className='text-white'>{note.releaseDate}</p>
-                  <p className='text-white'>{note.players}</p>
-                  <p className='text-white'>{note.publisher}</p>
-                </div> */}
-
-                <Accordion allowZeroExpanded>
-                  <AccordionItem key={note.id}>
-                      <AccordionItemHeading className='text-white'>
-                          <AccordionItemButton className='button text-white text-left'>
-                            Platform supported <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
-                          </AccordionItemButton>
-                      </AccordionItemHeading>
-                      <AccordionItemPanel>
-                          <p className='text-white'>
-                              {note.description}
-                          </p>
-                      </AccordionItemPanel>
-
-                      <AccordionItemHeading className='text-white'>
-                          <AccordionItemButton className='button text-white text-left'>
-                            Genre <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
-                          </AccordionItemButton>
-                      </AccordionItemHeading>
-                      <AccordionItemPanel>
-                          <p className='text-white'>
-                              {note.genre}
-                          </p>
-                      </AccordionItemPanel>
-
-                      <AccordionItemHeading className='text-white'>
-                          <AccordionItemButton className='button text-white text-left'>
-                            Release date <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
-                          </AccordionItemButton>
-                      </AccordionItemHeading>
-                      <AccordionItemPanel>
-                          <p className='text-white'>
-                              {note.releaseDate}
-                          </p>
-                      </AccordionItemPanel>
-                      <AccordionItemHeading className='text-white'>
-                          <AccordionItemButton className='button text-white text-left'>
-                            Max. Players <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
-                          </AccordionItemButton>
-                      </AccordionItemHeading>
-                      <AccordionItemPanel>
-                          <p className='text-white'>
-                              {note.players}
-                          </p>
-                      </AccordionItemPanel>
-                      <AccordionItemHeading className='text-white'>
-                          <AccordionItemButton className='button text-white text-left'>
-                            Publisher <FontAwesomeIcon className='text-blue-500' icon='chevron-down'/>
-                          </AccordionItemButton>
-                      </AccordionItemHeading>
-                      <AccordionItemPanel>
-                          <p className='text-white'>
-                              {note.description}
-                          </p>
-                      </AccordionItemPanel>
-
-                  </AccordionItem>
-                </Accordion>
+                </button>
+                
+                <Modal
+                  isOpen={modalIsOpen}
+                  onRequestClose={closeModal}
+                  style={customStyles}
+                  contentLabel="Game Information"
+                >        
+                  <button onClick={closeModal}>close</button>
+                  <h2 className='py-3 text-slate-600'>{note.name}</h2>
+                  <p className='text-slate-600'>{note.description}</p>
+                  <p className='text-slate-600'>{note.genre}</p>
+                  <p className='text-slate-600'>{note.releaseDate}</p>
+                  <p className='text-slate-600'>{note.players}</p>
+                  <p className='text-slate-600'>{note.publisher}</p>
+                </Modal>
                 {/* <button onClick={() => deleteNote(note)}>Delete note</button> */}
               </div>
             ))
           }
           </div>
-          
         </div>
       </div>
       <div className='container mx-auto py-12'>
