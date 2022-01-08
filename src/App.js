@@ -3,7 +3,8 @@ import './App.css';
 import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import { listNotes } from './graphql/queries';
-import { createNote as createNoteMutation, deleteNote as deleteNoteMutation } from './graphql/mutations'
+import { createNote as createNoteMutation} from './graphql/mutations'
+// import { createNote as createNoteMutation, deleteNote as deleteNoteMutation } from './graphql/mutations'
 import { API, Storage } from 'aws-amplify';
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faPlusSquare, faChevronDown } from '@fortawesome/free-solid-svg-icons'
@@ -29,8 +30,9 @@ export default function App() {
   
   const [notes, setNotes] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
-  const [isActive, setActive] = useState("false");
+  // const [isActive, setActive] = useState("false");
   const [modalIsOpen, setIsOpen] = React.useState(false);
+  const [modalData, setModalData] = useState(null);
 
   useEffect(() => {
     fetchNotes();
@@ -62,11 +64,11 @@ export default function App() {
   }
 
   // Delete function - removes a tile
-  async function deleteNote({ id }) {
-    const newNotesArray = notes.filter(note => note.id !== id);
-    setNotes(newNotesArray);
-    await API.graphql({ query: deleteNoteMutation, variables: { input: { id } }});
-  }
+  // async function deleteNote({ id }) {
+  //   const newNotesArray = notes.filter(note => note.id !== id);
+  //   setNotes(newNotesArray);
+  //   await API.graphql({ query: deleteNoteMutation, variables: { input: { id } }});
+  // }
 
   // Image upload function
   async function onChange(e) {
@@ -168,38 +170,44 @@ export default function App() {
               <div key={note.id || note.name} className="w-screen md:w-64 rounded mx-auto py-5">
 
                 {
-                  note.image && <img src={note.image} className='w-screen md:w-64 h-64 object-cover rounded' />
+                  note.image && <img src={note.image} alt={note.name} className='w-screen md:w-64 h-64 object-cover rounded' />
                 }
                 <h2 className='py-3 text-white'>{note.name}</h2>
                 <button 
                   type="button" 
                   class="m-2 px-6 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300"                  
-                  onClick={() => openModal(note.id)}
+                  onClick={() => {
+                    openModal();
+                    setModalData(note);
+                  }}
                 >
                   view game info
                 </button>
                 
-                <Modal
-                  isOpen={modalIsOpen}
-                  onRequestClose={closeModal}
-                  style={customStyles}
-                  contentLabel="Game Information"
-                >        
-                  <button onClick={closeModal}>close</button>
-                  <h2 className='py-3 text-slate-600'>{note.name}</h2>
-                  <p className='text-slate-600'>{note.description}</p>
-                  <p className='text-slate-600'>{note.genre}</p>
-                  <p className='text-slate-600'>{note.releaseDate}</p>
-                  <p className='text-slate-600'>{note.players}</p>
-                  <p className='text-slate-600'>{note.publisher}</p>
-                </Modal>
+                
                 {/* <button onClick={() => deleteNote(note)}>Delete note</button> */}
               </div>
             ))
           }
           </div>
+          
         </div>
       </div>
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={closeModal}
+        style={customStyles}
+        contentLabel="Game Information"
+        id={modalData.id}
+      >        
+        <button onClick={closeModal}>close</button>
+        <h2 className='py-3 text-slate-600'>{modalData.name}</h2>
+        <p className='text-slate-600'>{modalData.description}</p>
+        <p className='text-slate-600'>{modalData.genre}</p>
+        <p className='text-slate-600'>{modalData.releaseDate}</p>
+        <p className='text-slate-600'>{modalData.players}</p>
+        <p className='text-slate-600'>{modalData.publisher}</p>
+      </Modal>
       <div className='container mx-auto py-12'>
           <p className='text-center'><FontAwesomeIcon className='text-blue-500' icon="plus-square"/> Add a game to your library using the form below</p>
         </div>
