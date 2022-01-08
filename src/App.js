@@ -31,7 +31,7 @@ export default function App() {
   const [notes, setNotes] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
   // const [isActive, setActive] = useState("false");
-  const [modalIsOpen, setIsOpen] = React.useState(false);
+  const [modalIsOpen, setIsOpen] = useState(false);
   const [modalData, setModalData] = useState(null);
 
   useEffect(() => {
@@ -177,13 +177,7 @@ export default function App() {
                       view game info
                     </button>                    
                     {/* <button onClick={() => deleteNote(note)}>Delete note</button> */}
-                  </div>
-                ))
-              }
-              </div>
-            </div>
-          </div>
-        <Modal
+                    <Modal
           isOpen={modalIsOpen}
           onRequestClose={closeModal}
           style={customStyles}
@@ -204,6 +198,13 @@ export default function App() {
           </div>
         
         </Modal>
+                  </div>  
+                ))
+              }
+              </div>
+            </div>
+          </div>
+        
 
 
 
