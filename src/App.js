@@ -194,7 +194,7 @@ export default function App() {
             <h2 className="text-lg font-semibold text-gray-600">{modalData.name}</h2>
             <p className="mt-4 font-thin">Supported Platform: {modalData.description}</p>
             <p className="mt-2 font-thin">Genre: {modalData.genre}</p>
-            <p className="mt-2 font-thin">Release Date: {modalData.releaseDate}</p>
+            <p className="mt-2 font-thin">Release Date: {new Date(modalData.releaseDate).toLocaleDateString()}</p>
             <p class="mt-2 font-thin">Number of players: {modalData.players}</p>
             <p class="mt-2 font-thin">Publisher: {modalData.publisher}</p>
           </div>                                    
