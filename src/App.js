@@ -32,7 +32,7 @@ export default function App() {
   const [formData, setFormData] = useState(initialFormState);
   // const [isActive, setActive] = useState("false");
   const [modalIsOpen, setIsOpen] = useState(false);
-  const [modalData, setModalData] = useState(null);
+  const [modalData, setModalData] = useState(false);
 
   useEffect(() => {
     fetchNotes();
@@ -177,7 +177,13 @@ export default function App() {
                       view game info
                     </button>                    
                     {/* <button onClick={() => deleteNote(note)}>Delete note</button> */}
-                    <Modal
+                  </div>
+                ))
+              }
+              </div>
+            </div>
+          </div>
+        <Modal
           isOpen={modalIsOpen}
           onRequestClose={closeModal}
           style={customStyles}
@@ -198,13 +204,6 @@ export default function App() {
           </div>
         
         </Modal>
-                  </div>  
-                ))
-              }
-              </div>
-            </div>
-          </div>
-        
 
 
 
