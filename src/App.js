@@ -188,26 +188,25 @@ export default function App() {
           onRequestClose={closeModal}
           style={customStyles}
           contentLabel="Game Information"
-        >                 
-        <div className='max-w-xs rounded-md overflow-hidden shadow-lg hover:scale-105 transition duration-500 cursor-pointer'>
-
-        </div>
-        <div class="py-4 px-4 bg-white">
-          <h3 class="text-lg font-semibold text-gray-600">{modalData.name}</h3>
-          <p class="mt-4 text-lg font-thin">Supported Platform: {modalData.description}</p>
-          <p class="mt-2 text-lg font-thin">Genre: {modalData.genre}</p>
-          <p class="mt-2 text-lg font-thin">Release Date: {modalData.releaseDate}</p>
-          <p class="mt-2 text-lg font-thin">Number of players: {modalData.players}</p>
-          <p class="mt-2 text-lg font-thin">Publisher: {modalData.publisher}</p>
-        </div>
           
+        >             
+          <div className="py-4 px-4 bg-white">
+            <h2 className="text-lg font-semibold text-gray-600">{modalData.name}</h2>
+            <p className="mt-4 font-thin">Supported Platform: {modalData.description}</p>
+            <p className="mt-2 font-thin">Genre: {modalData.genre}</p>
+            <p className="mt-2 font-thin">Release Date: {new Date(modalData.releaseDate).toLocaleDateString()}</p>
+            <p class="mt-2 font-thin">Number of players: {modalData.players}</p>
+            <p class="mt-2 font-thin">Publisher: {modalData.publisher}</p>
+          </div>                                    
 
-        <div class="flex justify-end pt-2">          
-          <button onClick={closeModal} class="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-blue-400">Close</button>
-        </div>
+          <div class="flex justify-end pt-2">          
+            <button onClick={closeModal} class="modal-close px-4 bg-blue-500 p-3 rounded-lg text-white hover:bg-blue-400">Close</button>
+          </div>
         
-      
         </Modal>
+
+
+
           <div className='container mx-auto py-12'>
             <p className='text-center'><FontAwesomeIcon className='text-blue-500' icon="plus-square"/> Add a game to your library using the form below</p>
           </div>
