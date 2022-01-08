@@ -191,12 +191,12 @@ export default function App() {
           
         >             
           <div className="py-4 px-4 bg-white">
-            <h2 className="text-lg font-semibold text-gray-600">{modalData.name}</h2>
-            <p className="mt-4 font-thin">Supported Platform: {modalData.description}</p>
-            <p className="mt-2 font-thin">Genre: {modalData.genre}</p>
-            <p className="mt-2 font-thin">Release Date: {new Date(modalData.releaseDate).toLocaleDateString()}</p>
-            <p class="mt-2 font-thin">Number of players: {modalData.players}</p>
-            <p class="mt-2 font-thin">Publisher: {modalData.publisher}</p>
+            <h2 className="text-lg font-semibold text-slate-800">{modalData.name}</h2>
+            <p className="mt-4 font-semibold text-slate-800">Supported Platform: <span className="font-thin text-slate">{modalData.description}</span></p>
+            <p className="mt-2 font-semibold text-slate-600">Genre: <span className="font-thin text-slate-400">{modalData.genre}</span></p>
+            <p className="mt-2 font-semibold text-slate-600">Release Date: <span className="font-thin text-slate-400">{new Date(modalData.releaseDate).toLocaleDateString()}</span></p>
+            <p className="mt-2 font-semibold text-slate-600">Number of players: <span className="font-thin text-slate-400">{modalData.players}</span></p>
+            <p className="mt-2 font-semibold text-slate-600">Publisher: <span className="font-thin text-slate-400">{modalData.publisher}</span></p>
           </div>                                    
 
           <div class="flex justify-end pt-2">          
