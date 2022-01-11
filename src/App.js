@@ -10,6 +10,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { faPlusSquare, faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Modal from 'react-modal';
+import psLogo from './ps-logo.svg'
 
 
 library.add(faPlusSquare, faChevronDown)
@@ -100,6 +101,11 @@ export default function App() {
     },
   };
 
+  function noImage(ev) {
+    ev.target.src = {psLogo};
+    ev.target.onerror = null;
+  };
+
 
 
   return (
@@ -163,7 +169,7 @@ export default function App() {
                 notes.map(note => (
                   <div key={note.id || note.name} className="w-screen md:w-64 rounded mx-auto py-5">
                     {
-                      note.image && <img src={note.image} alt={note.name} className='w-screen md:w-64 h-64 object-cover rounded' />
+                      note.image && <img src={note.image} onError={noImage} alt={note.name} className='w-screen md:w-64 h-64 object-cover rounded' />
                     }
                     <h2 className='py-3 text-white'>{note.name}</h2>
                     <button 
@@ -182,7 +188,7 @@ export default function App() {
               }
               </div>
             </div>
-          </div>
+          </div>          
         <Modal
           isOpen={modalIsOpen}
           onRequestClose={closeModal}
