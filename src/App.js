@@ -177,7 +177,7 @@ export default function App() {
   return (
     // <Authenticator>
     //   {({ signOut, user }) => (
-    //     <>
+        <>
     
       {/* Navigation */}
       <nav className="bg-white-800">
@@ -447,7 +447,7 @@ export default function App() {
         </div>
         
       </main>
-    // </>
+     </>
     //   )}
     // </Authenticator>
   );
