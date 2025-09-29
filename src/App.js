@@ -32,6 +32,7 @@ export default function App() {
   const [modalData, setModalData] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
+  const [newImageUploaded, setNewImageUploaded] = useState(false);
   useEffect(() => {
     fetchNotes();
   }, []);
@@ -122,6 +123,17 @@ export default function App() {
   async function updateNote() {
     if (!formData.name || !formData.description) return;
 
+    // If a new image was uploaded, delete the old one
+    if (newImageUploaded && editingNote.image) {
+      const oldFileName = editingNote.image.includes('/') 
+        ? editingNote.image.split('/').pop() 
+        : editingNote.image;
+        
+      await supabase.storage
+        .from('images')
+        .remove([oldFileName]);
+    }
+
     const { error } = await supabase
       .from('notes')
       .update({
@@ -144,12 +156,14 @@ export default function App() {
     setFormData(initialFormState);
     setEditingNote(null);
     setEditMode(false);
+    setNewImageUploaded(false);
   }
 
   // Start editing a note
   function startEdit(note) {
     setEditingNote(note);
     setEditMode(true);
+    setNewImageUploaded(false);
     // Extract just the filename from the full URL for editing
     const imageFileName = note.image && note.image.includes('/') 
       ? note.image.split('/').pop() 
@@ -173,6 +187,7 @@ export default function App() {
   function cancelEdit() {
     setEditingNote(null);
     setEditMode(false);
+    setNewImageUploaded(false);
     setFormData(initialFormState);
   }
 
@@ -193,6 +208,9 @@ export default function App() {
     }
     
     setFormData({ ...formData, image: fileName });
+    if (editMode) {
+      setNewImageUploaded(true);
+    }
   }
 
   // Modal function
