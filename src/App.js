@@ -123,12 +123,17 @@ export default function App() {
   async function updateNote() {
     if (!formData.name || !formData.description) return;
 
+    console.log('Updating note with data:', formData); // Debug log
+    console.log('New image uploaded:', newImageUploaded); // Debug log
+    console.log('Original note image:', editingNote.image); // Debug log
+
     // If a new image was uploaded, delete the old one
     if (newImageUploaded && editingNote.image) {
       const oldFileName = editingNote.image.includes('/') 
         ? editingNote.image.split('/').pop() 
         : editingNote.image;
         
+      console.log('Deleting old image:', oldFileName); // Debug log
       await supabase.storage
         .from('images')
         .remove([oldFileName]);
@@ -149,9 +154,11 @@ export default function App() {
       
     if (error) {
       console.error('Error updating note:', error);
+      alert(`Update error: ${error.message}`); // Show error to user
       return;
     }
     
+    console.log('Note updated successfully'); // Debug log
     await fetchNotes();
     setFormData(initialFormState);
     setEditingNote(null);
@@ -198,18 +205,23 @@ export default function App() {
     const file = e.target.files[0];
     const fileName = `${Date.now()}-${file.name}`;
     
+    console.log('Uploading file:', fileName, 'in edit mode:', editMode); // Debug log
+    
     const { error } = await supabase.storage
       .from('images')
       .upload(fileName, file);
       
     if (error) {
       console.error('Error uploading file:', error);
+      alert(`Upload error: ${error.message}`); // Show error to user
       return;
     }
     
+    console.log('File uploaded successfully:', fileName); // Debug log
     setFormData({ ...formData, image: fileName });
     if (editMode) {
       setNewImageUploaded(true);
+      console.log('New image uploaded during edit'); // Debug log
     }
   }
 
