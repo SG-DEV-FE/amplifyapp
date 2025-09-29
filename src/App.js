@@ -30,6 +30,8 @@ export default function App() {
   // const [isActive, setActive] = useState("false");
   const [modalIsOpen, setIsOpen] = useState(false);
   const [modalData, setModalData] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
   useEffect(() => {
     fetchNotes();
   }, []);
@@ -46,35 +48,23 @@ export default function App() {
       return;
     }
     
-    console.log('Raw notes from database:', notes); // Debug log
-    
     // Handle image URLs if using Supabase Storage
     const notesWithImages = notes.map((note) => {
       if (note.image) {
-        // Try the standard getPublicUrl method first
         const { data } = supabase.storage.from('images').getPublicUrl(note.image);
-        console.log('Image URL for', note.image, ':', data.publicUrl); // Debug log
-        
-        // Alternative: Manual URL construction if needed
-        // const manualUrl = `${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/images/${note.image}`;
-        // console.log('Manual URL would be:', manualUrl);
-        
         return { ...note, image: data.publicUrl };
       }
       return note;
     });
     
-    console.log('Notes with image URLs:', notesWithImages); // Debug log
     setNotes(notesWithImages);
   }
 
   // Create a tile function
   async function createNote() {
     if (!formData.name || !formData.description) return;
-    
-    console.log('Creating note with data:', formData); // Debug log
   
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('notes')
       .insert([
         {
@@ -86,26 +76,105 @@ export default function App() {
           publisher: formData.publisher,
           image: formData.image
         }
-      ])
-      .select();
+      ]);
       
     if (error) {
       console.error('Error creating note:', error);
-      alert(`Database error: ${error.message}`); // Show error to user
       return;
     }
     
-    console.log('Note created successfully:', data); // Debug log
-    await fetchNotes(); // Refresh the list instead of manually updating
+    await fetchNotes();
     setFormData(initialFormState);
   }
 
   // Delete function - removes a tile
-  // async function deleteNote({ id }) {
-  //   const newNotesArray = notes.filter(note => note.id !== id);
-  //   setNotes(newNotesArray);
-  //   await API.graphql({ query: deleteNoteMutation, variables: { input: { id } }});
-  // }
+  async function deleteNote(noteToDelete) {
+    if (!window.confirm(`Are you sure you want to delete "${noteToDelete.name}"?`)) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', noteToDelete.id);
+      
+    if (error) {
+      console.error('Error deleting note:', error);
+      return;
+    }
+
+    // Also delete the image from storage if it exists
+    if (noteToDelete.image) {
+      // Extract filename from the full URL or use the stored filename
+      const fileName = noteToDelete.image.includes('/') 
+        ? noteToDelete.image.split('/').pop() 
+        : noteToDelete.image;
+        
+      await supabase.storage
+        .from('images')
+        .remove([fileName]);
+    }
+
+    await fetchNotes();
+  }
+
+  // Edit function - updates an existing tile
+  async function updateNote() {
+    if (!formData.name || !formData.description) return;
+
+    const { error } = await supabase
+      .from('notes')
+      .update({
+        name: formData.name,
+        description: formData.description,
+        genre: formData.genre,
+        release_date: formData.releaseDate,
+        players: parseInt(formData.players) || null,
+        publisher: formData.publisher,
+        image: formData.image
+      })
+      .eq('id', editingNote.id);
+      
+    if (error) {
+      console.error('Error updating note:', error);
+      return;
+    }
+    
+    await fetchNotes();
+    setFormData(initialFormState);
+    setEditingNote(null);
+    setEditMode(false);
+  }
+
+  // Start editing a note
+  function startEdit(note) {
+    setEditingNote(note);
+    setEditMode(true);
+    // Extract just the filename from the full URL for editing
+    const imageFileName = note.image && note.image.includes('/') 
+      ? note.image.split('/').pop() 
+      : note.image;
+      
+    setFormData({
+      name: note.name,
+      description: note.description,
+      genre: note.genre || '',
+      releaseDate: note.release_date || '',
+      players: note.players || '',
+      publisher: note.publisher || '',
+      image: imageFileName || ''
+    });
+    
+    // Scroll to form
+    document.getElementById('game-form').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // Cancel editing
+  function cancelEdit() {
+    setEditingNote(null);
+    setEditMode(false);
+    setFormData(initialFormState);
+  }
 
   // Image upload function
   async function onChange(e) {
@@ -114,21 +183,16 @@ export default function App() {
     const file = e.target.files[0];
     const fileName = `${Date.now()}-${file.name}`;
     
-    console.log('Uploading file:', fileName); // Debug log
-    
     const { error } = await supabase.storage
       .from('images')
       .upload(fileName, file);
       
     if (error) {
       console.error('Error uploading file:', error);
-      alert(`Upload error: ${error.message}`); // Show error to user
       return;
     }
     
-    console.log('File uploaded successfully:', fileName); // Debug log
     setFormData({ ...formData, image: fileName });
-    // Remove fetchNotes() from here - it's not needed after just uploading
   }
 
   // Modal function
@@ -223,17 +287,32 @@ export default function App() {
                       note.image && <img src={note.image} onError={noImage} alt={note.name} className='w-screen md:w-64 h-64 object-cover rounded' />
                     }
                     <h2 className='py-3 text-white'>{note.name}</h2>
-                    <button 
-                      type="button" 
-                      class="m-2 px-6 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300"                  
-                      onClick={() => {
-                        openModal();
-                        setModalData(note);
-                      }}
-                    >
-                      view game info
-                    </button>                    
-                    {/* <button onClick={() => deleteNote(note)}>Delete note</button> */}
+                    <div className="flex flex-wrap justify-center gap-2">
+                      <button 
+                        type="button" 
+                        className="px-4 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300"                  
+                        onClick={() => {
+                          openModal();
+                          setModalData(note);
+                        }}
+                      >
+                        View Info
+                      </button>
+                      <button 
+                        type="button" 
+                        className="px-4 py-2 bg-green-500 text-white rounded-full shadow-sm hover:bg-green-300 focus:ring-2 focus:ring-300"                  
+                        onClick={() => startEdit(note)}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        type="button" 
+                        className="px-4 py-2 bg-red-500 text-white rounded-full shadow-sm hover:bg-red-300 focus:ring-2 focus:ring-300"                  
+                        onClick={() => deleteNote(note)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))
               }
@@ -265,11 +344,14 @@ export default function App() {
 
 
           <div className='container mx-auto py-12'>
-            <p className='text-center'><FontAwesomeIcon className='text-blue-500' icon="plus-square"/> Add a game to your library using the form below</p>
+            <p className='text-center'>
+              <FontAwesomeIcon className='text-blue-500' icon="plus-square"/> 
+              {editMode ? ' Edit your game using the form below' : ' Add a game to your library using the form below'}
+            </p>
           </div>
           <div className='flex justify-center items-center mx-auto py-8'>
           
-          <div class="md:grid md:grid-cols-12 md:gap-6 w-full md:w-2/4 drop-shadow-lg">
+          <div id="game-form" className="md:grid md:grid-cols-12 md:gap-6 w-full md:w-2/4 drop-shadow-lg">
             <div class="mt-5 md:mt-0 md:col-span-12">          
                 <div class="shadow sm:rounded-md sm:overflow-hidden">
                   <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
@@ -419,11 +501,30 @@ export default function App() {
                             </div>
                           </div>
                         </div>
-                        <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
-                          <button onClick={createNote} class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            Create Game
-                          </button>
-                          
+                        <div className="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
+                          {editMode ? (
+                            <>
+                              <button 
+                                onClick={updateNote} 
+                                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                              >
+                                Update Game
+                              </button>
+                              <button 
+                                onClick={cancelEdit} 
+                                className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button 
+                              onClick={createNote} 
+                              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              Create Game
+                            </button>
+                          )}
                         </div>
                       </div>
                   </div>
