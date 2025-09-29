@@ -203,9 +203,18 @@ export default function App() {
     if (!e.target.files[0]) return;
   
     const file = e.target.files[0];
-    const fileName = `${Date.now()}-${file.name}`;
     
-    console.log('Uploading file:', fileName, 'in edit mode:', editMode); // Debug log
+    // Sanitize filename by removing special characters and spaces
+    const sanitizedName = file.name
+      .normalize('NFD') // Normalize unicode characters
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics (ö becomes o)
+      .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+      .replace(/_{2,}/g, '_'); // Replace multiple underscores with single
+    
+    const fileName = `${Date.now()}-${sanitizedName}`;
+    
+    console.log('Original filename:', file.name);
+    console.log('Sanitized filename:', fileName, 'in edit mode:', editMode);
     
     const { error } = await supabase.storage
       .from('images')
@@ -213,15 +222,15 @@ export default function App() {
       
     if (error) {
       console.error('Error uploading file:', error);
-      alert(`Upload error: ${error.message}`); // Show error to user
+      alert(`Upload error: ${error.message}`);
       return;
     }
     
-    console.log('File uploaded successfully:', fileName); // Debug log
+    console.log('File uploaded successfully:', fileName);
     setFormData({ ...formData, image: fileName });
     if (editMode) {
       setNewImageUploaded(true);
-      console.log('New image uploaded during edit'); // Debug log
+      console.log('New image uploaded during edit');
     }
   }
 
