@@ -30,42 +30,9 @@ export default function App() {
   // const [isActive, setActive] = useState("false");
   const [modalIsOpen, setIsOpen] = useState(false);
   const [modalData, setModalData] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     fetchNotes();
   }, []);
-
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    return () => subscription?.unsubscribe();
-  }, []);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!user) {
-    return <LoginComponent />;
-  }
 
   //  fecth tiles in library
   async function fetchNotes() {
@@ -133,7 +100,7 @@ export default function App() {
   const file = e.target.files[0];
   const fileName = `${Date.now()}-${file.name}`;
   
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from('images')
     .upload(fileName, file);
     
@@ -203,12 +170,12 @@ export default function App() {
               <div class="hidden md:flex items-center space-x-2">
               <div className="hidden md:block">
                 <div className="ml-10 flex items-baseline space-x-4">
-                <button onClick={signOut} type="button" class="m-2 px-6 py-2 bg-gray-600 text-white rounded-full shadow-sm hover:bg-blue-500 focus:ring-2 focus:ring-gray-200">sign out</button>
+                  {/* Sign out button removed - no auth required */}
                 </div>
               </div>
             </div>
             <div className="-mr-2 flex md:hidden">
-            <button onClick={signOut} type="button" class="m-2 px-6 py-2 bg-gray-600 text-white rounded-full shadow-sm hover:bg-blue-500 focus:ring-2 focus:ring-gray-200">sign out</button> 
+              {/* Sign out button removed - no auth required */}
             </div>
           </div>
         </div>
