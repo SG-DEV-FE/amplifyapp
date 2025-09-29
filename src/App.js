@@ -61,29 +61,33 @@ export default function App() {
   // Create a tile function
   async function createNote() {
     if (!formData.name || !formData.description) return;
-  
-  const { data, error } = await supabase
-    .from('notes')
-    .insert([
-      {
-        name: formData.name,
-        description: formData.description,
-        genre: formData.genre,
-        release_date: formData.releaseDate,
-        players: parseInt(formData.players),
-        publisher: formData.publisher,
-        image: formData.image
-      }
-    ])
-    .select();
     
-  if (error) {
-    console.error('Error creating note:', error);
-    return;
-  }
+    console.log('Creating note with data:', formData); // Debug log
   
-  setNotes([...notes, data[0]]);
-  setFormData(initialFormState);
+    const { data, error } = await supabase
+      .from('notes')
+      .insert([
+        {
+          name: formData.name,
+          description: formData.description,
+          genre: formData.genre,
+          release_date: formData.releaseDate,
+          players: parseInt(formData.players) || null,
+          publisher: formData.publisher,
+          image: formData.image
+        }
+      ])
+      .select();
+      
+    if (error) {
+      console.error('Error creating note:', error);
+      alert(`Database error: ${error.message}`); // Show error to user
+      return;
+    }
+    
+    console.log('Note created successfully:', data); // Debug log
+    await fetchNotes(); // Refresh the list instead of manually updating
+    setFormData(initialFormState);
   }
 
   // Delete function - removes a tile
@@ -97,20 +101,24 @@ export default function App() {
   async function onChange(e) {
     if (!e.target.files[0]) return;
   
-  const file = e.target.files[0];
-  const fileName = `${Date.now()}-${file.name}`;
-  
-  const { error } = await supabase.storage
-    .from('images')
-    .upload(fileName, file);
+    const file = e.target.files[0];
+    const fileName = `${Date.now()}-${file.name}`;
     
-  if (error) {
-    console.error('Error uploading file:', error);
-    return;
-  }
-  
-  setFormData({ ...formData, image: fileName });
-  fetchNotes();
+    console.log('Uploading file:', fileName); // Debug log
+    
+    const { error } = await supabase.storage
+      .from('images')
+      .upload(fileName, file);
+      
+    if (error) {
+      console.error('Error uploading file:', error);
+      alert(`Upload error: ${error.message}`); // Show error to user
+      return;
+    }
+    
+    console.log('File uploaded successfully:', fileName); // Debug log
+    setFormData({ ...formData, image: fileName });
+    // Remove fetchNotes() from here - it's not needed after just uploading
   }
 
   // Modal function
