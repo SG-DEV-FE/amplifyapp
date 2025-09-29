@@ -3,9 +3,11 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import Amplify from 'aws-amplify';
-import config from './aws-exports';
-Amplify.configure(config);
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 ReactDOM.render(
   <React.StrictMode>

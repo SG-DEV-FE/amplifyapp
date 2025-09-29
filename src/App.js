@@ -1,16 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './App.css';
-import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
-import { listNotes } from './graphql/queries';
-import { createNote as createNoteMutation} from './graphql/mutations'
-// import { createNote as createNoteMutation, deleteNote as deleteNoteMutation } from './graphql/mutations'
-import { API, Storage } from 'aws-amplify';
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faPlusSquare, faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Modal from 'react-modal';
 import psLogo from './ps-logo.svg'
+import { supabase } from './index';
 
 
 library.add(faPlusSquare, faChevronDown)
@@ -34,34 +30,93 @@ export default function App() {
   // const [isActive, setActive] = useState("false");
   const [modalIsOpen, setIsOpen] = useState(false);
   const [modalData, setModalData] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchNotes();
   }, []);
 
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    return () => subscription?.unsubscribe();
+  }, []);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <LoginComponent />;
+  }
+
   //  fecth tiles in library
   async function fetchNotes() {
-    const apiData = await API.graphql({ query: listNotes });
-    const notesFromAPI = apiData.data.listNotes.items;
-    await Promise.all(notesFromAPI.map(async note => {
-      if (note.image) {
-        const image = await Storage.get(note.image);
-        note.image = image;
-      }
-    }))
-    setNotes(apiData.data.listNotes.items);
+  const { data: notes, error } = await supabase
+    .from('notes')
+    .select('*')
+    .order('created_at', { ascending: false });
+    
+  if (error) {
+    console.error('Error fetching notes:', error);
+    return;
+  }
+  
+  // Handle image URLs if using Supabase Storage
+  const notesWithImages = await Promise.all(notes.map(async (note) => {
+    if (note.image) {
+      const { data } = supabase.storage.from('images').getPublicUrl(note.image);
+      note.image = data.publicUrl;
+    }
+    return note;
+  }));
+  
+  setNotes(notesWithImages);
   }
 
   // Create a tile function
   async function createNote() {
-    if(!formData.name || !formData.description) return;
-    await API.graphql({ query: createNoteMutation, variables: { input: formData } });
-    if (formData.image) {
-      const image = await Storage.get(formData.image);
-      formData.image = image;
-    }
-    setNotes([ ...notes, formData ]);
-    setFormData(initialFormState);
+    if (!formData.name || !formData.description) return;
+  
+  const { data, error } = await supabase
+    .from('notes')
+    .insert([
+      {
+        name: formData.name,
+        description: formData.description,
+        genre: formData.genre,
+        release_date: formData.releaseDate,
+        players: parseInt(formData.players),
+        publisher: formData.publisher,
+        image: formData.image
+      }
+    ])
+    .select();
+    
+  if (error) {
+    console.error('Error creating note:', error);
+    return;
+  }
+  
+  setNotes([...notes, data[0]]);
+  setFormData(initialFormState);
   }
 
   // Delete function - removes a tile
@@ -73,11 +128,22 @@ export default function App() {
 
   // Image upload function
   async function onChange(e) {
-    if (!e.target.files[0]) return
-    const file = e.target.files[0];
-    setFormData({ ...formData, image: file.name });
-    await Storage.put(file.name, file);
-    fetchNotes();
+    if (!e.target.files[0]) return;
+  
+  const file = e.target.files[0];
+  const fileName = `${Date.now()}-${file.name}`;
+  
+  const { data, error } = await supabase.storage
+    .from('images')
+    .upload(fileName, file);
+    
+  if (error) {
+    console.error('Error uploading file:', error);
+    return;
+  }
+  
+  setFormData({ ...formData, image: fileName });
+  fetchNotes();
   }
 
   // Modal function
