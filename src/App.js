@@ -36,26 +36,36 @@ export default function App() {
 
   //  fecth tiles in library
   async function fetchNotes() {
-  const { data: notes, error } = await supabase
-    .from('notes')
-    .select('*')
-    .order('created_at', { ascending: false });
-    
-  if (error) {
-    console.error('Error fetching notes:', error);
-    return;
-  }
-  
-  // Handle image URLs if using Supabase Storage
-  const notesWithImages = await Promise.all(notes.map(async (note) => {
-    if (note.image) {
-      const { data } = supabase.storage.from('images').getPublicUrl(note.image);
-      note.image = data.publicUrl;
+    const { data: notes, error } = await supabase
+      .from('notes')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching notes:', error);
+      return;
     }
-    return note;
-  }));
-  
-  setNotes(notesWithImages);
+    
+    console.log('Raw notes from database:', notes); // Debug log
+    
+    // Handle image URLs if using Supabase Storage
+    const notesWithImages = notes.map((note) => {
+      if (note.image) {
+        // Try the standard getPublicUrl method first
+        const { data } = supabase.storage.from('images').getPublicUrl(note.image);
+        console.log('Image URL for', note.image, ':', data.publicUrl); // Debug log
+        
+        // Alternative: Manual URL construction if needed
+        // const manualUrl = `${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/images/${note.image}`;
+        // console.log('Manual URL would be:', manualUrl);
+        
+        return { ...note, image: data.publicUrl };
+      }
+      return note;
+    });
+    
+    console.log('Notes with image URLs:', notesWithImages); // Debug log
+    setNotes(notesWithImages);
   }
 
   // Create a tile function
