@@ -225,16 +225,6 @@ const Login = () => {
             </button>
           </div>
         </form>
-
-        {isLogin && (
-          <div className="mt-6 p-4 bg-blue-50 rounded-md">
-            <p className="text-sm text-blue-800">
-              <strong>Demo Admin Account:</strong><br />
-              Email: admin@gamelib.com<br />
-              Password: admin123
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
