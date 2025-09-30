@@ -88,19 +88,21 @@ async function setupTestData() {
   console.log('');
   console.log('1. Start your app: npm start');
   console.log('2. Create a new account or sign in');
-  console.log('3. To test admin features:');
-  console.log('   - Sign up with: admin@gamelib.com');
-  console.log('   - Use any password (min 6 characters)');
-  console.log('   - Then run this SQL in Supabase:');
-  console.log('     UPDATE user_roles SET role = \'admin\' WHERE user_id = (SELECT id FROM auth.users WHERE email = \'admin@gamelib.com\');');
+  console.log('3. Build your personal game library:');
+  console.log('   - Add games you own');
+  console.log('   - Edit game details');
+  console.log('   - Delete games from your collection');
+  console.log('   - Each user has their own private library');
   console.log('');
-  console.log('4. Regular users can view games but cannot edit/delete');
-  console.log('5. Admin users can create, edit, and delete games');
+  console.log('4. Optional admin features:');
+  console.log('   - Sign up with: admin@gamelib.com');
+  console.log('   - Then run SQL to make admin: UPDATE user_roles SET role = \'admin\' WHERE user_id = (SELECT id FROM auth.users WHERE email = \'admin@gamelib.com\');');
   console.log('');
   console.log('📋 Next steps:');
   console.log('- Follow the setup instructions in SUPABASE_SETUP.md');
+  console.log('- Add the user_id column to your notes table');
+  console.log('- Set up Row Level Security policies');
   console.log('- Customize the styling to match your brand');
-  console.log('- Add more admin features as needed');
 }
 
 setupTestData().catch(console.error);

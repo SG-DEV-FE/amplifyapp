@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import './App.css';
 import '@aws-amplify/ui-react/styles.css';
 import { library } from '@fortawesome/fontawesome-svg-core'
@@ -9,7 +9,7 @@ import psLogo from './ps-logo.svg'
 import { supabase } from './index';
 import { useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
-import AdminGuard from './components/AdminGuard';
+
 
 library.add(faPlusSquare, faChevronDown)
 
@@ -34,15 +34,12 @@ function GameLibrary() {
   const [editingNote, setEditingNote] = useState(null);
   const [newImageUploaded, setNewImageUploaded] = useState(false);
 
-  useEffect(() => {
-    fetchNotes();
-  }, []);
-
-  //  fecth tiles in library
-  async function fetchNotes() {
+  //  fetch user's personal library
+  const fetchNotes = useCallback(async () => {
     const { data: notes, error } = await supabase
       .from('notes')
       .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
       
     if (error) {
@@ -60,7 +57,11 @@ function GameLibrary() {
     });
     
     setNotes(notesWithImages);
-  }
+  }, [user.id]);
+
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
 
   // Create a tile function
   async function createNote() {
@@ -76,7 +77,8 @@ function GameLibrary() {
           release_date: formData.releaseDate,
           players: parseInt(formData.players) || null,
           publisher: formData.publisher,
-          image: formData.image
+          image: formData.image,
+          user_id: user.id
         }
       ]);
       
@@ -310,13 +312,13 @@ function GameLibrary() {
         <div className='App'>
           {/* main intro */}
           <div className='container flex justify-center align-center flex-col py-8 mx-auto'>
-            <h1 className='text-2xl text-slate-800'>Welcome to your game library</h1>
+            <h1 className='text-2xl text-slate-800'>Welcome to your personal game library</h1>
             <p className='text-blue-500 uppercase tracking-widest'>play has no limits</p>
 
             <p className='pt-8'>
-              You can create a library of your games here.
+              Create and manage your personal game collection here.
               <br />
-              you will need to ensure that you have the images available to upload.
+              Add games you own, want to play, or have completed!
             </p>
           </div>
 
@@ -341,22 +343,20 @@ function GameLibrary() {
                       >
                         View Info
                       </button>
-                      <AdminGuard>
-                        <button 
-                          type="button" 
-                          className="px-4 py-2 bg-green-500 text-white rounded-full shadow-sm hover:bg-green-300 focus:ring-2 focus:ring-300"                  
-                          onClick={() => startEdit(note)}
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          type="button" 
-                          className="px-4 py-2 bg-red-500 text-white rounded-full shadow-sm hover:bg-red-300 focus:ring-2 focus:ring-300"                  
-                          onClick={() => deleteNote(note)}
-                        >
-                          Delete
-                        </button>
-                      </AdminGuard>
+                      <button 
+                        type="button" 
+                        className="px-4 py-2 bg-green-500 text-white rounded-full shadow-sm hover:bg-green-300 focus:ring-2 focus:ring-300"                  
+                        onClick={() => startEdit(note)}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        type="button" 
+                        className="px-4 py-2 bg-red-500 text-white rounded-full shadow-sm hover:bg-red-300 focus:ring-2 focus:ring-300"                  
+                        onClick={() => deleteNote(note)}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 ))
@@ -385,22 +385,12 @@ function GameLibrary() {
           </div>
         </Modal>
 
-        <AdminGuard>
-          <div className='container mx-auto py-12'>
-            <p className='text-center'>
-              <FontAwesomeIcon className='text-blue-500' icon="plus-square"/> 
-              {editMode ? ' Edit your game using the form below' : ' Add a game to your library using the form below'}
-            </p>
-          </div>
-        </AdminGuard>
-        
-        <AdminGuard 
-          fallback={
-            <div className='container mx-auto py-12 text-center'>
-              <p className='text-gray-600'>Only administrators can add or edit games.</p>
-            </div>
-          }
-        >
+        <div className='container mx-auto py-12'>
+          <p className='text-center'>
+            <FontAwesomeIcon className='text-blue-500' icon="plus-square"/> 
+            {editMode ? ' Edit your game using the form below' : ' Add a game to your library using the form below'}
+          </p>
+        </div>
           <div className='flex justify-center items-center mx-auto py-8'>
             <div id="game-form" className="md:grid md:grid-cols-12 md:gap-6 w-full md:w-2/4 drop-shadow-lg">
               <div className="mt-5 md:mt-0 md:col-span-12">          
@@ -575,7 +565,6 @@ function GameLibrary() {
               </div>
             </div>
           </div>
-        </AdminGuard>
         </div>
       </main>
     </>
