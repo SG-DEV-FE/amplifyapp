@@ -8,6 +8,14 @@ import { AuthProvider } from './contexts/AuthContext';
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+// Add error handling for missing environment variables
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing Supabase environment variables!');
+  console.error('REACT_APP_SUPABASE_URL:', supabaseUrl ? 'Present' : 'Missing');
+  console.error('REACT_APP_SUPABASE_ANON_KEY:', supabaseKey ? 'Present' : 'Missing');
+}
+
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 ReactDOM.render(

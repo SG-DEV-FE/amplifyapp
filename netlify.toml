@@ -9,3 +9,5 @@
 
 [build.environment]
   CI = "false"
+  REACT_APP_SUPABASE_URL = "https://nzgioxjmlvkgnrxzbzvv.supabase.co"
+  REACT_APP_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56Z2lveGptbHZrZ25yeHpienZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxNDExNTAsImV4cCI6MjA3NDcxNzE1MH0.T2Yueuwd8FPwbE12D71UWZG8LU9TUFyDzHelRMAlXBs"
