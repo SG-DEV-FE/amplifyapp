@@ -17,22 +17,34 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Set a timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      console.warn('Auth initialization timed out - clearing loading state');
+      setLoading(false);
+    }, 5000); // 5 second timeout
+
     // Get initial session
     const initAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
+        clearTimeout(loadingTimeout);
+        
         if (error) {
           console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+        
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await checkAdminStatus(session.user.id);
         } else {
-          setUser(session?.user ?? null);
-          if (session?.user) {
-            await checkAdminStatus(session.user.id);
-          }
+          setLoading(false);
         }
       } catch (error) {
         console.error('Unexpected error during auth init:', error);
-      } finally {
+        clearTimeout(loadingTimeout);
         setLoading(false);
       }
     };
@@ -43,6 +55,25 @@ export const AuthProvider = ({ children }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email || 'No user');
+      
+      // Handle sign out events immediately
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        setUser(null);
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+      
+      // Handle sign in events
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setUser(session.user);
+        await checkAdminStatus(session.user.id);
+        setLoading(false);
+        return;
+      }
+      
+      // Default handling for other events
       setUser(session?.user ?? null);
       if (session?.user) {
         await checkAdminStatus(session.user.id);
@@ -113,12 +144,28 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Clear state immediately for better UX
       setUser(null);
       setIsAdmin(false);
+      setLoading(false);
+      
+      // Then call Supabase signOut
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        // Even if Supabase signOut fails, we've cleared the local state
+      }
+      
+      // Force clear any stuck sessions
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.clear();
+      
     } catch (error) {
       console.error('Error signing out:', error);
+      // Ensure state is cleared even on error
+      setUser(null);
+      setIsAdmin(false);
+      setLoading(false);
     }
   };
 
@@ -141,6 +188,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Manual session clear function for debugging
+  const clearSession = () => {
+    console.log('Manually clearing session...');
+    setUser(null);
+    setIsAdmin(false);
+    setLoading(false);
+    localStorage.removeItem('supabase.auth.token');
+    sessionStorage.clear();
+    
+    // Force sign out
+    supabase.auth.signOut().catch(console.error);
+  };
+
   const value = {
     user,
     isAdmin,
@@ -149,6 +209,7 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signOut,
     makeUserAdmin,
+    clearSession,
   };
 
   return (
