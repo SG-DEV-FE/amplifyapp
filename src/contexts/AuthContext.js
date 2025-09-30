@@ -231,17 +231,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Manual session clear function for debugging
-  const clearSession = () => {
-    console.log('Manually clearing session...');
-    setUser(null);
-    setIsAdmin(false);
-    setLoading(false);
-    localStorage.removeItem('supabase.auth.token');
-    sessionStorage.clear();
-    
-    // Force sign out
-    supabase.auth.signOut().catch(console.error);
-  };
+  
 
   const value = {
     user,
@@ -250,8 +240,7 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
-    makeUserAdmin,
-    clearSession,
+    makeUserAdmin
   };
 
   return (

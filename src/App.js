@@ -25,7 +25,7 @@ const initialFormState = {
 
 // Main Game Library Component
 function GameLibrary() {
-  const { user, isAdmin, signOut, clearSession } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const [notes, setNotes] = useState([]);
   const [formData, setFormData] = useState(initialFormState);
   const [modalIsOpen, setIsOpen] = useState(false);
@@ -289,13 +289,7 @@ function GameLibrary() {
               <div className="text-sm text-gray-600 mr-4">
                 Welcome, {user?.email} {isAdmin && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs ml-2">Admin</span>}
               </div>
-              <button
-                onClick={clearSession}
-                className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded text-sm mr-2"
-                title="Clear stuck session"
-              >
-                🔄
-              </button>
+              
               <button
                 onClick={signOut}
                 className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm"
