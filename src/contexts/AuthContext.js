@@ -17,73 +17,106 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Auto-logout on page leave/close/refresh for maximum security
+    const handlePageLeave = () => {
+      console.log('Page is being left - signing out user');
+      // Immediately clear all auth data
+      localStorage.clear();
+      sessionStorage.clear();
+      supabase.auth.signOut().catch(console.error);
+    };
+
+    // Auto-logout on window/tab close
+    const handleBeforeUnload = (e) => {
+      handlePageLeave();
+    };
+
+    // Auto-logout when page becomes hidden (tab switch, minimize, etc.)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('Page hidden - starting logout timer');
+        // Give user 30 seconds to come back, then auto-logout
+        setTimeout(() => {
+          if (document.hidden) {
+            console.log('Page still hidden after 30s - auto logout');
+            handlePageLeave();
+          }
+        }, 30000);
+      }
+    };
+
+    // Auto-logout on browser back/forward navigation
+    const handlePopState = () => {
+      handlePageLeave();
+    };
+
+    // Attach event listeners for auto-logout
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handlePageLeave);
+    window.addEventListener('pagehide', handlePageLeave);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('popstate', handlePopState);
+
     // Set a timeout to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
       console.warn('Auth initialization timed out - clearing loading state');
       setLoading(false);
     }, 5000); // 5 second timeout
 
-    // Get initial session
+    // Get initial session - but clear any existing session first for fresh start
     const initAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Always start fresh - clear any existing sessions
+        await supabase.auth.signOut();
+        localStorage.clear();
+        sessionStorage.clear();
         
         clearTimeout(loadingTimeout);
         
-        if (error) {
-          console.error('Error getting session:', error);
-          setLoading(false);
-          return;
-        }
-        
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await checkAdminStatus(session.user.id);
-        } else {
-          setLoading(false);
-        }
+        // After clearing, user should always be null initially
+        setUser(null);
+        setIsAdmin(false);
+        setLoading(false);
       } catch (error) {
-        console.error('Unexpected error during auth init:', error);
+        console.error('Error during fresh start:', error);
         clearTimeout(loadingTimeout);
+        setUser(null);
+        setIsAdmin(false);
         setLoading(false);
       }
     };
 
     initAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes - only handle successful sign-ins  
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.email || 'No user');
       
-      // Handle sign out events immediately
-      if (event === 'SIGNED_OUT' || !session?.user) {
-        setUser(null);
-        setIsAdmin(false);
-        setLoading(false);
-        return;
-      }
-      
-      // Handle sign in events
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      // Only process successful sign-ins
+      if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
         await checkAdminStatus(session.user.id);
         setLoading(false);
         return;
       }
       
-      // Default handling for other events
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkAdminStatus(session.user.id);
-      } else {
-        setIsAdmin(false);
-      }
+      // All other events result in signed out state
+      setUser(null);
+      setIsAdmin(false);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup event listeners and subscription on unmount
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handlePageLeave);
+      window.removeEventListener('pagehide', handlePageLeave);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('popstate', handlePopState);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const checkAdminStatus = async (userId) => {
@@ -129,6 +162,11 @@ export const AuthProvider = ({ children }) => {
 
   const signIn = async (email, password) => {
     try {
+      // Clear any existing session first for security
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -136,6 +174,7 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
+      // The auth state change listener will handle setting the user state
       return { user: data.user, error: null };
     } catch (error) {
       return { user: null, error: error.message };
@@ -144,21 +183,24 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
+      console.log('Manual sign out initiated');
+      
       // Clear state immediately for better UX
       setUser(null);
       setIsAdmin(false);
       setLoading(false);
       
+      // Aggressively clear all storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
       // Then call Supabase signOut
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
-        // Even if Supabase signOut fails, we've cleared the local state
       }
       
-      // Force clear any stuck sessions
-      localStorage.removeItem('supabase.auth.token');
-      sessionStorage.clear();
+      console.log('Sign out completed');
       
     } catch (error) {
       console.error('Error signing out:', error);
