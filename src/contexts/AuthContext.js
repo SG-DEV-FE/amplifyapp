@@ -18,13 +18,26 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        checkAdminStatus(session.user.id);
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        } else {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await checkAdminStatus(session.user.id);
+          }
+        }
+      } catch (error) {
+        console.error('Unexpected error during auth init:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const {
@@ -50,7 +63,12 @@ export const AuthProvider = ({ children }) => {
         .eq('user_id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
+        // Table doesn't exist or no record found - both are OK, just default to non-admin
+        if (error.code === '42P01' || error.code === 'PGRST116') {
+          setIsAdmin(false);
+          return;
+        }
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
         return;
@@ -58,7 +76,7 @@ export const AuthProvider = ({ children }) => {
 
       setIsAdmin(data?.role === 'admin');
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error('Unexpected error checking admin status:', error);
       setIsAdmin(false);
     }
   };
