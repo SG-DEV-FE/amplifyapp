@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import './App.css';
-import '@aws-amplify/ui-react/styles.css';
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faPlusSquare, faChevronDown, faSearch, faTimes } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from './contexts/AuthContext';
