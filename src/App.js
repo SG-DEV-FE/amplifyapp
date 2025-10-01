@@ -43,6 +43,7 @@ function GameLibrary() {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [isUpdatingImages, setIsUpdatingImages] = useState(false);
 
   //  fetch user's personal library
   const fetchNotes = useCallback(async () => {
@@ -59,17 +60,26 @@ function GameLibrary() {
     
     // Handle image URLs - check if it's a URL or a Supabase storage filename
     const notesWithImages = notes.map((note) => {
+      console.log('🔍 Processing note:', {
+        id: note.id,
+        name: note.name,
+        originalImage: note.image
+      });
+      
       if (note.image) {
         // If it's already a full URL (from RAWG), use it directly
         if (note.image.startsWith('http://') || note.image.startsWith('https://')) {
+          console.log('📷 Using direct URL for:', note.name, note.image);
           return { ...note, image: note.image };
         }
         // If it's a filename, get the public URL from Supabase storage
         else {
           const { data } = supabase.storage.from('images').getPublicUrl(note.image);
+          console.log('📁 Using Supabase storage for:', note.name, data.publicUrl);
           return { ...note, image: data.publicUrl };
         }
       }
+      console.log('❌ No image for:', note.name);
       return note;
     });
     
@@ -118,6 +128,94 @@ function GameLibrary() {
     return () => clearTimeout(delayedSearch);
   }, [searchQuery]);
 
+  // Find and update missing images for existing games
+  const updateMissingImages = async () => {
+    if (isUpdatingImages) return;
+    
+    setIsUpdatingImages(true);
+    
+    try {
+      // Find games without images
+      const gamesWithoutImages = notes.filter(note => !note.image || note.image === '');
+      
+      if (gamesWithoutImages.length === 0) {
+        alert('All games already have images!');
+        setIsUpdatingImages(false);
+        return;
+      }
+      
+      console.log(`🔍 Found ${gamesWithoutImages.length} games without images:`, gamesWithoutImages.map(g => g.name));
+      
+      let updatedCount = 0;
+      
+      for (const game of gamesWithoutImages) {
+        try {
+          console.log(`🎮 Searching for image for: ${game.name}`);
+          
+          // Search RAWG for this game
+          const response = await fetch(
+            `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(game.name)}&page_size=5`
+          );
+          
+          if (!response.ok) {
+            console.log(`❌ Failed to search for ${game.name}`);
+            continue;
+          }
+          
+          const data = await response.json();
+          const searchResults = data.results || [];
+          
+          // Find the best match (exact name match or first result)
+          let bestMatch = searchResults.find(result => 
+            result.name.toLowerCase() === game.name.toLowerCase()
+          );
+          
+          if (!bestMatch && searchResults.length > 0) {
+            bestMatch = searchResults[0];
+          }
+          
+          if (bestMatch && bestMatch.background_image) {
+            console.log(`📷 Found image for ${game.name}:`, bestMatch.background_image);
+            
+            // Update the game with the new image
+            const { error } = await supabase
+              .from('notes')
+              .update({ image: bestMatch.background_image })
+              .eq('id', game.id);
+              
+            if (error) {
+              console.error(`❌ Failed to update ${game.name}:`, error);
+            } else {
+              console.log(`✅ Updated image for ${game.name}`);
+              updatedCount++;
+            }
+          } else {
+            console.log(`❌ No image found for ${game.name}`);
+          }
+          
+          // Add a small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (error) {
+          console.error(`Error processing ${game.name}:`, error);
+        }
+      }
+      
+      if (updatedCount > 0) {
+        alert(`Successfully updated images for ${updatedCount} games!`);
+        await fetchNotes(); // Refresh the games list
+      } else {
+        alert('No images could be found for the games missing images.');
+      }
+      
+    } catch (error) {
+      console.error('Error updating missing images:', error);
+      alert('Failed to update missing images. Please try again.');
+    } finally {
+      setIsUpdatingImages(false);
+    }
+  };
+
   // Add game from search results
   const addGameFromSearch = async (game) => {
     try {
@@ -136,18 +234,25 @@ function GameLibrary() {
       // Store the RAWG image URL directly - no need to download and re-upload
       if (game.background_image) {
         gameData.image = game.background_image;
-        console.log('Using RAWG image URL:', game.background_image);
+        console.log('🎮 RAWG Game Data:', {
+          name: game.name,
+          imageUrl: game.background_image,
+          gameData: gameData
+        });
       }
 
-      const { error } = await supabase
+      const { data: insertedData, error } = await supabase
         .from('notes')
-        .insert([gameData]);
+        .insert([gameData])
+        .select();
         
       if (error) {
         console.error('Error adding game:', error);
         alert(`Error adding game: ${error.message}`);
         return;
       }
+      
+      console.log('✅ Game inserted successfully:', insertedData);
       
       await fetchNotes();
       setSearchQuery('');
@@ -501,13 +606,34 @@ function GameLibrary() {
                 )}
               </div>
               
-              <div className="text-center mt-4">
+              <div className="text-center mt-4 space-y-2">
                 <button
                   onClick={() => setShowManualForm(!showManualForm)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium block mx-auto"
                 >
                   {showManualForm ? 'Hide manual form' : "Can't find your game? Add it manually"}
                 </button>
+                
+                {notes.length > 0 && (
+                  <button
+                    onClick={updateMissingImages}
+                    disabled={isUpdatingImages}
+                    className={`px-4 py-2 text-sm font-medium rounded-md ${
+                      isUpdatingImages
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {isUpdatingImages ? (
+                      <>
+                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Finding Images...
+                      </>
+                    ) : (
+                      'Find Missing Images'
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -516,16 +642,36 @@ function GameLibrary() {
           <div className="bg-black">
             <div className="container mx-auto">        
               <div className="bg-black grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:content-start md:justify-start">
-                {notes.map(note => (
-                  <div key={note.id || note.name} className="w-screen md:w-64 rounded mx-auto py-5">
-                    {note.image && (
-                      <img 
-                        src={note.image} 
-                        onError={noImage} 
-                        alt={note.name} 
-                        className='w-screen md:w-64 h-64 object-cover rounded' 
-                      />
-                    )}
+                {notes.map(note => {
+                  console.log('🖼️ Rendering note:', {
+                    name: note.name,
+                    imageUrl: note.image,
+                    hasImage: !!note.image
+                  });
+                  
+                  return (
+                    <div key={note.id || note.name} className="w-screen md:w-64 rounded mx-auto py-5">
+                      {note.image ? (
+                        <img 
+                          src={note.image} 
+                          alt={note.name} 
+                          className='w-screen md:w-64 h-64 object-cover rounded'
+                          onLoad={() => console.log('✅ Image loaded successfully for:', note.name)}
+                          onError={(e) => {
+                            console.log('❌ Image failed to load for:', note.name, 'URL:', note.image);
+                            noImage(e);
+                          }}
+                        />
+                      ) : (
+                        <div className="w-screen md:w-64 h-64 bg-gray-300 rounded flex items-center justify-center">
+                          <div className="text-center text-gray-500">
+                            <svg className="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p className="text-xs">No Image</p>
+                          </div>
+                        </div>
+                      )}
                     <h2 className='py-3 text-white'>{note.name}</h2>
                     <div className="flex flex-wrap justify-center gap-2">
                       <button 
@@ -545,16 +691,17 @@ function GameLibrary() {
                       >
                         Edit
                       </button>
-                      <button 
-                        type="button" 
-                        className="px-4 py-2 bg-red-500 text-white rounded-full shadow-sm hover:bg-red-300 focus:ring-2 focus:ring-300"                  
-                        onClick={() => deleteNote(note)}
-                      >
-                        Delete
-                      </button>
+                        <button 
+                          type="button" 
+                          className="px-4 py-2 bg-red-500 text-white rounded-full shadow-sm hover:bg-red-300 focus:ring-2 focus:ring-300"                  
+                          onClick={() => deleteNote(note)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>          
