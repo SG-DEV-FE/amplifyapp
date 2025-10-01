@@ -71,7 +71,7 @@ const GameSearch = ({ onGameAdd, onToggleManualForm, showManualForm, onUpdateMis
     <div className='container mx-auto py-8'>
       <div className='max-w-2xl mx-auto'>
         <div className='relative'>
-          <div className='flex sm:mx-2 items-center bg-white rounded-lg border border-gray-300 shadow-sm'>
+          <div className='flex mx-2 sm:mx-0 items-center bg-white rounded-lg border border-gray-300 shadow-sm'>
             <FontAwesomeIcon 
               icon="search" 
               className='text-gray-400 ml-4'
