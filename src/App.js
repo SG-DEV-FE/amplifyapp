@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import './App.css';
 import '@aws-amplify/ui-react/styles.css';
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faPlusSquare, faChevronDown } from '@fortawesome/free-solid-svg-icons'
+import { faPlusSquare, faChevronDown, faSearch, faTimes } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import Modal from 'react-modal';
 import psLogo from './ps-logo.svg'
@@ -10,8 +10,7 @@ import { supabase } from './index';
 import { useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 
-
-library.add(faPlusSquare, faChevronDown)
+library.add(faPlusSquare, faChevronDown, faSearch, faTimes)
 
 const initialFormState = { 
   name: '', 
@@ -21,7 +20,11 @@ const initialFormState = {
   players: '',
   publisher: '',
   image: '',
- }
+}
+
+// RAWG API configuration
+const RAWG_API_KEY = process.env.REACT_APP_RAWG_API_KEY || ''; // Add your API key to .env
+const RAWG_BASE_URL = 'https://api.rawg.io/api';
 
 // Main Game Library Component
 function GameLibrary() {
@@ -33,6 +36,13 @@ function GameLibrary() {
   const [editMode, setEditMode] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [newImageUploaded, setNewImageUploaded] = useState(false);
+  
+  // Search functionality state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
 
   //  fetch user's personal library
   const fetchNotes = useCallback(async () => {
@@ -63,7 +73,103 @@ function GameLibrary() {
     fetchNotes();
   }, [fetchNotes]);
 
-  // Create a tile function
+  // Search games from RAWG API
+  const searchGames = async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(query)}&page_size=10`
+      );
+      
+      if (!response.ok) throw new Error('Failed to fetch games');
+      
+      const data = await response.json();
+      setSearchResults(data.results || []);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Error searching games:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle search input with debounce
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (searchQuery) {
+        searchGames(searchQuery);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayedSearch);
+  }, [searchQuery]);
+
+  // Add game from search results
+  const addGameFromSearch = async (game) => {
+    try {
+      // Format the game data from RAWG API
+      const gameData = {
+        name: game.name,
+        description: game.platforms?.map(p => p.platform.name).join(', ') || 'Multiple Platforms',
+        genre: game.genres?.map(g => g.name).join(', ') || '',
+        release_date: game.released || '',
+        players: game.tags?.find(tag => tag.name.includes('Multiplayer')) ? 2 : 1,
+        publisher: game.publishers?.[0]?.name || 'Unknown',
+        image: '', // We'll handle image separately
+        user_id: user.id
+      };
+
+      // Try to download and store the game image if available
+      if (game.background_image) {
+        try {
+          const imageResponse = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(game.background_image)}`);
+          if (imageResponse.ok) {
+            const imageBlob = await imageResponse.blob();
+            const fileName = `${Date.now()}-${game.slug}.jpg`;
+            
+            const { error: uploadError } = await supabase.storage
+              .from('images')
+              .upload(fileName, imageBlob);
+              
+            if (!uploadError) {
+              gameData.image = fileName;
+            }
+          }
+        } catch (imageError) {
+          console.log('Could not download image, proceeding without it');
+        }
+      }
+
+      const { error } = await supabase
+        .from('notes')
+        .insert([gameData]);
+        
+      if (error) {
+        console.error('Error adding game:', error);
+        alert(`Error adding game: ${error.message}`);
+        return;
+      }
+      
+      await fetchNotes();
+      setSearchQuery('');
+      setSearchResults([]);
+      setShowSearchResults(false);
+      alert(`"${game.name}" added to your library!`);
+      
+    } catch (error) {
+      console.error('Error adding game from search:', error);
+      alert('Failed to add game. Please try the manual form.');
+    }
+  };
+
+  // Create a tile function (manual form)
   async function createNote() {
     if (!formData.name || !formData.description) return;
   
@@ -89,6 +195,7 @@ function GameLibrary() {
     
     await fetchNotes();
     setFormData(initialFormState);
+    setShowManualForm(false);
   }
 
   // Delete function - removes a tile
@@ -109,7 +216,6 @@ function GameLibrary() {
 
     // Also delete the image from storage if it exists
     if (noteToDelete.image) {
-      // Extract filename from the full URL or use the stored filename
       const fileName = noteToDelete.image.includes('/') 
         ? noteToDelete.image.split('/').pop() 
         : noteToDelete.image;
@@ -167,12 +273,14 @@ function GameLibrary() {
     setEditingNote(null);
     setEditMode(false);
     setNewImageUploaded(false);
+    setShowManualForm(false);
   }
 
   // Start editing a note
   function startEdit(note) {
     setEditingNote(note);
     setEditMode(true);
+    setShowManualForm(true);
     setNewImageUploaded(false);
     // Extract just the filename from the full URL for editing
     const imageFileName = note.image && note.image.includes('/') 
@@ -199,6 +307,7 @@ function GameLibrary() {
     setEditMode(false);
     setNewImageUploaded(false);
     setFormData(initialFormState);
+    setShowManualForm(false);
   }
 
   // Image upload function
@@ -258,9 +367,9 @@ function GameLibrary() {
   };
 
   function noImage(ev) {
-    ev.target.src = {psLogo};
+    ev.target.src = psLogo;
     ev.target.onerror = null;
-  };
+  }
 
   return (
     <>
@@ -323,15 +432,108 @@ function GameLibrary() {
             </p>
           </div>
 
+          {/* Game Search Section */}
+          <div className='container mx-auto py-8'>
+            <div className='max-w-2xl mx-auto'>
+              <div className='relative'>
+                <div className='flex items-center bg-white rounded-lg border border-gray-300 shadow-sm'>
+                  <FontAwesomeIcon 
+                    icon="search" 
+                    className='text-gray-400 ml-4'
+                  />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search for games to add to your library..."
+                    className="w-full px-4 py-3 text-gray-700 bg-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchResults([]);
+                        setShowSearchResults(false);
+                      }}
+                      className="text-gray-400 hover:text-gray-600 mr-4"
+                    >
+                      <FontAwesomeIcon icon="times" />
+                    </button>
+                  )}
+                </div>
+                
+                {isSearching && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-b-lg shadow-lg p-4 text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="text-gray-500 mt-2">Searching games...</p>
+                  </div>
+                )}
+
+                {/* Search Results */}
+                {showSearchResults && searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-b-lg shadow-lg max-h-96 overflow-y-auto z-10">
+                    {searchResults.map((game) => (
+                      <div key={game.id} className="flex items-center p-4 hover:bg-gray-50 border-b border-gray-100">
+                        <img 
+                          src={game.background_image || psLogo} 
+                          alt={game.name}
+                          className="w-16 h-16 object-cover rounded"
+                          onError={(e) => { e.target.src = psLogo; }}
+                        />
+                        <div className="ml-4 flex-1">
+                          <h3 className="font-semibold text-gray-800">{game.name}</h3>
+                          <p className="text-sm text-gray-600">
+                            {game.released && `Released: ${new Date(game.released).getFullYear()}`}
+                            {game.genres && game.genres.length > 0 && ` • ${game.genres.map(g => g.name).join(', ')}`}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {game.platforms?.slice(0, 3).map(p => p.platform.name).join(', ')}
+                            {game.platforms?.length > 3 && ` +${game.platforms.length - 3} more`}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => addGameFromSearch(game)}
+                          className="ml-4 px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          Add to Library
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {showSearchResults && searchResults.length === 0 && !isSearching && searchQuery && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-b-lg shadow-lg p-4 text-center">
+                    <p className="text-gray-500">No games found. Try a different search term.</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="text-center mt-4">
+                <button
+                  onClick={() => setShowManualForm(!showManualForm)}
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  {showManualForm ? 'Hide manual form' : "Can't find your game? Add it manually"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Game Library Display */}
           <div className="bg-black">
             <div className="container mx-auto">        
               <div className="bg-black grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:content-start md:justify-start">
-                {
-                notes.map(note => (
+                {notes.map(note => (
                   <div key={note.id || note.name} className="w-screen md:w-64 rounded mx-auto py-5">
-                    {
-                      note.image && <img src={note.image} onError={noImage} alt={note.name} className='w-screen md:w-64 h-64 object-cover rounded' />
-                    }
+                    {note.image && (
+                      <img 
+                        src={note.image} 
+                        onError={noImage} 
+                        alt={note.name} 
+                        className='w-screen md:w-64 h-64 object-cover rounded' 
+                      />
+                    )}
                     <h2 className='py-3 text-white'>{note.name}</h2>
                     <div className="flex flex-wrap justify-center gap-2">
                       <button 
@@ -360,8 +562,7 @@ function GameLibrary() {
                       </button>
                     </div>
                   </div>
-                ))
-              }
+                ))}
               </div>
             </div>
           </div>          
@@ -376,7 +577,7 @@ function GameLibrary() {
             <h2 className="text-lg font-semibold text-slate-800">{modalData.name}</h2>
             <p className="mt-4 font-semibold text-slate-800">Supported Platform: <span className="font-thin text-slate">{modalData.description}</span></p>
             <p className="mt-2 font-semibold text-slate-600">Genre: <span className="font-thin text-slate-400">{modalData.genre}</span></p>
-            <p className="mt-2 font-semibold text-slate-600">Release Date: <span className="font-thin text-slate-400">{new Date(modalData.releaseDate).toLocaleDateString()}</span></p>
+            <p className="mt-2 font-semibold text-slate-600">Release Date: <span className="font-thin text-slate-400">{modalData.releaseDate && new Date(modalData.releaseDate).toLocaleDateString()}</span></p>
             <p className="mt-2 font-semibold text-slate-600">Number of players: <span className="font-thin text-slate-400">{modalData.players}</span></p>
             <p className="mt-2 font-semibold text-slate-600">Publisher: <span className="font-thin text-slate-400">{modalData.publisher}</span></p>
           </div>                                    
@@ -386,186 +587,191 @@ function GameLibrary() {
           </div>
         </Modal>
 
-        <div className='container mx-auto py-12'>
-          <p className='text-center'>
-            <FontAwesomeIcon className='text-blue-500' icon="plus-square"/> 
-            {editMode ? ' Edit your game using the form below' : ' Add a game to your library using the form below'}
-          </p>
-        </div>
-          <div className='flex justify-center items-center mx-auto py-8'>
-            <div id="game-form" className="md:grid md:grid-cols-12 md:gap-6 w-full md:w-2/4 drop-shadow-lg">
-              <div className="mt-5 md:mt-0 md:col-span-12">          
-                <div className="shadow sm:rounded-md sm:overflow-hidden">
-                  <div className="px-4 py-5 bg-white space-y-6 sm:p-6">
-                    <div className="grid grid-cols-12 gap-6">
+        {/* Manual Form (now conditional) */}
+        {showManualForm && (
+          <>
+            <div className='container mx-auto py-12'>
+              <p className='text-center'>
+                <FontAwesomeIcon className='text-blue-500' icon="plus-square"/> 
+                {editMode ? ' Edit your game using the form below' : ' Add a game manually using the form below'}
+              </p>
+            </div>
+            <div className='flex justify-center items-center mx-auto py-8'>
+              <div id="game-form" className="md:grid md:grid-cols-12 md:gap-6 w-full md:w-2/4 drop-shadow-lg">
+                <div className="mt-5 md:mt-0 md:col-span-12">          
+                  <div className="shadow sm:rounded-md sm:overflow-hidden">
+                    <div className="px-4 py-5 bg-white space-y-6 sm:p-6">
+                      <div className="grid grid-cols-12 gap-6">
 
-                      {/* Game Title */}
-                      <div className="col-span-6">
-                        <label htmlFor="title-name" className="block text-sm text-left font-medium text-gray-700 py-4">
-                          Game / Title name
-                        </label>
-                        <div className="mt-1 flex rounded-md shadow-sm">
-                          <input 
-                            type="text"
-                            onChange={e => setFormData({ ...formData, 'name': e.target.value })}
-                            placeholder='Title Name'
-                            value={formData.name}
-                            name="title-name"
-                            id="title-name"
-                            className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
-                          />
+                        {/* Game Title */}
+                        <div className="col-span-6">
+                          <label htmlFor="title-name" className="block text-sm text-left font-medium text-gray-700 py-4">
+                            Game / Title name
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <input 
+                              type="text"
+                              onChange={e => setFormData({ ...formData, 'name': e.target.value })}
+                              placeholder='Title Name'
+                              value={formData.name}
+                              name="title-name"
+                              id="title-name"
+                              className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
+                            />
+                          </div>
                         </div>
-                      </div>
 
-                      {/* System Platform */}
-                      <div className="col-span-6">
-                        <label htmlFor="system-platform" className="block text-sm text-left font-medium text-gray-700 py-4">
-                          System / Platform
-                        </label>
-                        <div className="mt-1 flex rounded-md shadow-sm">
-                          <input 
-                            type="text"
-                            onChange={e => setFormData({...formData, 'description': e.target.value})}
-                            placeholder='System Platform'
-                            value={formData.description}
-                            name="system-platform"
-                            id="system-platform"
-                            className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
-                          />
+                        {/* System Platform */}
+                        <div className="col-span-6">
+                          <label htmlFor="system-platform" className="block text-sm text-left font-medium text-gray-700 py-4">
+                            System / Platform
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <input 
+                              type="text"
+                              onChange={e => setFormData({...formData, 'description': e.target.value})}
+                              placeholder='System Platform'
+                              value={formData.description}
+                              name="system-platform"
+                              id="system-platform"
+                              className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
+                            />
+                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Title Genre */}
-                      <div className="col-span-6">
-                        <label htmlFor="title-genre" className="block text-sm text-left font-medium text-gray-700 py-4">
-                          Title Genre
-                        </label>
-                        <div className="mt-1 flex rounded-md shadow-sm">
-                          <input 
-                            type="text"
-                            onChange={e => setFormData({...formData, 'genre': e.target.value})}
-                            placeholder='Title Genre'
-                            value={formData.genre}
-                            name="title-genre"
-                            id="title-genre"
-                            className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
-                          />
+                        
+                        {/* Title Genre */}
+                        <div className="col-span-6">
+                          <label htmlFor="title-genre" className="block text-sm text-left font-medium text-gray-700 py-4">
+                            Title Genre
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <input 
+                              type="text"
+                              onChange={e => setFormData({...formData, 'genre': e.target.value})}
+                              placeholder='Title Genre'
+                              value={formData.genre}
+                              name="title-genre"
+                              id="title-genre"
+                              className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
+                            />
+                          </div>
                         </div>
-                      </div>
-                                                    
-                      {/* Release Date */}
-                      <div className="col-span-6">
-                        <label htmlFor="release-date" className="block text-sm text-left font-medium text-gray-700 py-4">
-                          Release Date
-                        </label>
-                        <div className="mt-1 flex rounded-md shadow-sm">
-                          <input 
-                            type="date" 
-                            onChange={e => setFormData({...formData, 'releaseDate': e.target.value})}
-                            placeholder='Release Date'
-                            value={formData.releaseDate}
-                            name="release-date"
-                            id="release-date"
-                            className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2 cursor-pointer"
-                          />
+                                                      
+                        {/* Release Date */}
+                        <div className="col-span-6">
+                          <label htmlFor="release-date" className="block text-sm text-left font-medium text-gray-700 py-4">
+                            Release Date
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <input 
+                              type="date" 
+                              onChange={e => setFormData({...formData, 'releaseDate': e.target.value})}
+                              placeholder='Release Date'
+                              value={formData.releaseDate}
+                              name="release-date"
+                              id="release-date"
+                              className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2 cursor-pointer"
+                            />
+                          </div>
                         </div>
-                      </div>
-                                                    
-                      {/* Number of Players */}
-                      <div className="col-span-6">
-                        <label htmlFor="player-count" className="block text-sm text-left font-medium text-gray-700 py-4">
-                          Number of Players
-                        </label>
-                        <div className="mt-1 flex rounded-md shadow-sm">
-                          <input 
-                            type="number"
-                            onChange={e => setFormData({...formData, 'players': e.target.value})}
-                            placeholder='No. of players'
-                            value={formData.players}
-                            name="player-count"
-                            id="player-count"
-                            className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
-                          />
+                                                      
+                        {/* Number of Players */}
+                        <div className="col-span-6">
+                          <label htmlFor="player-count" className="block text-sm text-left font-medium text-gray-700 py-4">
+                            Number of Players
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <input 
+                              type="number"
+                              onChange={e => setFormData({...formData, 'players': e.target.value})}
+                              placeholder='No. of players'
+                              value={formData.players}
+                              name="player-count"
+                              id="player-count"
+                              className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
+                            />
+                          </div>
                         </div>
-                      </div>
-                                                                                
-                      {/* Publisher */}
-                      <div className="col-span-6">
-                        <label htmlFor="publisher" className="block text-sm text-left font-medium text-gray-700 py-4">
-                          Publisher
-                        </label>
-                        <div className="mt-1 flex rounded-md shadow-sm">
-                          <input 
-                            type="text"
-                            onChange={e => setFormData({...formData, 'publisher': e.target.value})}
-                            placeholder='Publisher'
-                            value={formData.publisher}
-                            name="publisher"
-                            id="publisher"
-                            className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
-                          />
+                                                                                          
+                        {/* Publisher */}
+                        <div className="col-span-6">
+                          <label htmlFor="publisher" className="block text-sm text-left font-medium text-gray-700 py-4">
+                            Publisher
+                          </label>
+                          <div className="mt-1 flex rounded-md shadow-sm">
+                            <input 
+                              type="text"
+                              onChange={e => setFormData({...formData, 'publisher': e.target.value})}
+                              placeholder='Publisher'
+                              value={formData.publisher}
+                              name="publisher"
+                              id="publisher"
+                              className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
+                            />
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Image upload */}
-                      <div className='col-span-12'>
-                        <label htmlFor="file-upload" className="block text-sm text-left font-medium text-gray-700 py-4">
-                          Game / Title box art
-                        </label>
-                        <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                          <div className="space-y-1 text-left">
-                            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                              <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            <div className="flex justify-center text-sm text-gray-600">
-                              <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                                <span>Upload a file</span>
-                                <input
-                                  type="file"
-                                  onChange={onChange}
-                                  id="file-upload" 
-                                  name="file-upload" 
-                                  className="sr-only" 
-                                />
-                              </label>
+                        {/* Image upload */}
+                        <div className='col-span-12'>
+                          <label htmlFor="file-upload" className="block text-sm text-left font-medium text-gray-700 py-4">
+                            Game / Title box art
+                          </label>
+                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                            <div className="space-y-1 text-left">
+                              <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              <div className="flex justify-center text-sm text-gray-600">
+                                <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                                  <span>Upload a file</span>
+                                  <input
+                                    type="file"
+                                    onChange={onChange}
+                                    id="file-upload" 
+                                    name="file-upload" 
+                                    className="sr-only" 
+                                  />
+                                </label>
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                PNG, JPG, GIF up to 10MB
+                              </p>
                             </div>
-                            <p className="text-xs text-gray-500">
-                              PNG, JPG, GIF up to 10MB
-                            </p>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
-                    {editMode ? (
-                      <>
+                    <div className="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-2">
+                      {editMode ? (
+                        <>
+                          <button 
+                            onClick={updateNote} 
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                          >
+                            Update Game
+                          </button>
+                          <button 
+                            onClick={cancelEdit} 
+                            className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
                         <button 
-                          onClick={updateNote} 
-                          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                          onClick={createNote} 
+                          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                         >
-                          Update Game
+                          Create Game
                         </button>
-                        <button 
-                          onClick={cancelEdit} 
-                          className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <button 
-                        onClick={createNote} 
-                        className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        Create Game
-                      </button>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          </>
+        )}
         </div>
       </main>
     </>
