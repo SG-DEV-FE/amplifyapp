@@ -57,11 +57,18 @@ function GameLibrary() {
       return;
     }
     
-    // Handle image URLs if using Supabase Storage
+    // Handle image URLs - check if it's a URL or a Supabase storage filename
     const notesWithImages = notes.map((note) => {
       if (note.image) {
-        const { data } = supabase.storage.from('images').getPublicUrl(note.image);
-        return { ...note, image: data.publicUrl };
+        // If it's already a full URL (from RAWG), use it directly
+        if (note.image.startsWith('http://') || note.image.startsWith('https://')) {
+          return { ...note, image: note.image };
+        }
+        // If it's a filename, get the public URL from Supabase storage
+        else {
+          const { data } = supabase.storage.from('images').getPublicUrl(note.image);
+          return { ...note, image: data.publicUrl };
+        }
       }
       return note;
     });
@@ -126,25 +133,10 @@ function GameLibrary() {
         user_id: user.id
       };
 
-      // Try to download and store the game image if available
+      // Store the RAWG image URL directly - no need to download and re-upload
       if (game.background_image) {
-        try {
-          const imageResponse = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(game.background_image)}`);
-          if (imageResponse.ok) {
-            const imageBlob = await imageResponse.blob();
-            const fileName = `${Date.now()}-${game.slug}.jpg`;
-            
-            const { error: uploadError } = await supabase.storage
-              .from('images')
-              .upload(fileName, imageBlob);
-              
-            if (!uploadError) {
-              gameData.image = fileName;
-            }
-          }
-        } catch (imageError) {
-          console.log('Could not download image, proceeding without it');
-        }
+        gameData.image = game.background_image;
+        console.log('Using RAWG image URL:', game.background_image);
       }
 
       const { error } = await supabase
