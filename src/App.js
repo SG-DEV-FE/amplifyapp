@@ -1,16 +1,22 @@
-import { useEffect, useState } from 'react';
-import './App.css';
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { faPlusSquare, faChevronDown, faSearch, faTimes } from '@fortawesome/free-solid-svg-icons'
-import { useAuth } from './contexts/AuthContext';
-import Login from './components/Login';
-import GameSearch from './components/GameSearch';
-import GameLibrary from './components/GameLibrary';
-import GameForm from './components/GameForm';
-import GameModal from './components/GameModal';
-import { useGameManagement } from './hooks/useGameManagement';
+import { useEffect, useState } from "react";
+import "./App.css";
+import { library } from "@fortawesome/fontawesome-svg-core";
+import {
+  faPlusSquare,
+  faChevronDown,
+  faSearch,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
+import { useAuth } from "./contexts/AuthContext";
+import Login from "./components/Login";
+import GameSearch from "./components/GameSearch";
+import GameLibrary from "./components/GameLibrary";
+import GameForm from "./components/GameForm";
+import GameModal from "./components/GameModal";
+import GamingPlatformLogos from "./components/GamingPlatformLogos";
+import { useGameManagement } from "./hooks/useGameManagement";
 
-library.add(faPlusSquare, faChevronDown, faSearch, faTimes)
+library.add(faPlusSquare, faChevronDown, faSearch, faTimes);
 
 // Main Game Library Component
 function GameLibraryApp() {
@@ -70,7 +76,9 @@ function GameLibraryApp() {
     setShowManualForm(true);
     // Scroll to form
     setTimeout(() => {
-      document.getElementById('game-form')?.scrollIntoView({ behavior: 'smooth' });
+      document
+        .getElementById("game-form")
+        ?.scrollIntoView({ behavior: "smooth" });
     }, 100);
   };
 
@@ -87,26 +95,19 @@ function GameLibraryApp() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-5">
               <div className="flex-shrink-0">
-                <a className="h-8 w-8" href="https://www.playstation.com" aria-label="PlayStation.com">
-                  <svg className="shared-nav-ps-logo" width="50px" height="50px" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50">
-                    <g>
-                      <g>
-                        <path d="M5.8,32.1C4.3,33.1,4.8,35,8,35.9c3.3,1.1,6.9,1.4,10.4,0.8c0.2,0,0.4-0.1,0.5-0.1v-3.4l-3.4,1.1
-                    c-1.3,0.4-2.6,0.5-3.9,0.2c-1-0.3-0.8-0.9,0.4-1.4l6.9-2.4V27l-9.6,3.3C8.1,30.7,6.9,31.3,5.8,32.1z M29,17.1v9.7
-                    c4.1,2,7.3,0,7.3-5.2c0-5.3-1.9-7.7-7.4-9.6C26,11,23,10.1,20,9.5v28.9l7,2.1V16.2c0-1.1,0-1.9,0.8-1.6C28.9,14.9,29,16,29,17.1z
-                      M42,29.8c-2.9-1-6-1.4-9-1.1c-1.6,0.1-3.1,0.5-4.5,1l-0.3,0.1v3.9l6.5-2.4c1.3-0.4,2.6-0.5,3.9-0.2c1,0.3,0.8,0.9-0.4,1.4
-                    l-10,3.7V40L42,34.9c1-0.4,1.9-0.9,2.7-1.7C45.4,32.2,45.1,30.8,42,29.8z" fill="#0070d1"></path>
-                      </g>
-                    </g>
-                  </svg>
-                </a>
+                <GamingPlatformLogos mode="rotate" interval={3000} />
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-2">
               <div className="text-sm text-gray-600 mr-4">
-                Welcome, {user?.email} {isAdmin && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs ml-2">Admin</span>}
+                Welcome, {user?.email}{" "}
+                {isAdmin && (
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs ml-2">
+                    Admin
+                  </span>
+                )}
               </div>
-              
+
               <button
                 onClick={signOut}
                 className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm"
@@ -127,13 +128,17 @@ function GameLibraryApp() {
       </nav>
 
       <main>
-        <div className='App'>
+        <div className="App">
           {/* Header */}
-          <div className='container flex justify-center align-center flex-col py-8 mx-auto'>
-            <h1 className='text-2xl text-slate-800'>Welcome to your personal game library</h1>
-            <p className='text-blue-500 uppercase tracking-widest'>play has no limits</p>
+          <div className="container flex justify-center align-center flex-col py-8 mx-auto">
+            <h1 className="text-2xl text-slate-800">
+              Welcome to your personal game library
+            </h1>
+            <p className="text-blue-500 uppercase tracking-widest">
+              play has no limits
+            </p>
 
-            <p className='pt-8'>
+            <p className="pt-8">
               Create and manage your personal game collection here.
               <br />
               Add games you own, want to play, or have completed!
@@ -183,7 +188,7 @@ function GameLibraryApp() {
 // Main App Component with Authentication
 export default function App() {
   const { user, loading } = useAuth();
-  
+
   // Show login screen if not authenticated
   if (!user && !loading) {
     return <Login />;
