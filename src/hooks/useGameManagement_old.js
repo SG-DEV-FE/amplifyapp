@@ -1,35 +1,8 @@
 import { useState, useCallback } from 'react';
+import { supabase } from '../index';
 
 const RAWG_API_KEY = process.env.REACT_APP_RAWG_API_KEY || '';
 const RAWG_BASE_URL = 'https://api.rawg.io/api';
-
-// Helper function to make authenticated requests to Netlify Functions
-const fetchWithAuth = async (url, options = {}) => {
-  const token = localStorage.getItem('netlifyToken');
-  const userId = localStorage.getItem('userId');
-  
-  const headers = {
-    'Content-Type': 'application/json',
-    'x-user-id': userId,
-    ...options.headers,
-  };
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Request failed');
-  }
-
-  return response.json();
-};
 
 export const useGameManagement = (userId) => {
   const [notes, setNotes] = useState([]);
@@ -37,39 +10,44 @@ export const useGameManagement = (userId) => {
 
   // Fetch user's personal library
   const fetchNotes = useCallback(async () => {
-    try {
-      const games = await fetchWithAuth('/api/games');
+    const { data: notes, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
       
-      // Handle image URLs - check if it's a URL or a Netlify image
-      const notesWithImages = games.map((note) => {
-        console.log('🔍 Processing note:', {
-          id: note.id,
-          name: note.name,
-          originalImage: note.image
-        });
-        
-        if (note.image) {
-          // If it's already a full URL (from RAWG), use it directly
-          if (note.image.startsWith('http://') || note.image.startsWith('https://')) {
-            console.log('📷 Using direct URL for:', note.name, note.image);
-            return { ...note, image: note.image };
-          }
-          // If it's a filename, get the URL from Netlify
-          else {
-            const imageUrl = `/api/images?file=${encodeURIComponent(note.image)}`;
-            console.log('📁 Using Netlify image for:', note.name, imageUrl);
-            return { ...note, image: imageUrl };
-          }
-        }
-        console.log('❌ No image for:', note.name);
-        return note;
+    if (error) {
+      console.error('Error fetching notes:', error);
+      return;
+    }
+    
+    // Handle image URLs - check if it's a URL or a Supabase storage filename
+    const notesWithImages = notes.map((note) => {
+      console.log('🔍 Processing note:', {
+        id: note.id,
+        name: note.name,
+        originalImage: note.image
       });
       
-      setNotes(notesWithImages);
-    } catch (error) {
-      console.error('Error fetching notes:', error);
-    }
-  }, []);
+      if (note.image) {
+        // If it's already a full URL (from RAWG), use it directly
+        if (note.image.startsWith('http://') || note.image.startsWith('https://')) {
+          console.log('📷 Using direct URL for:', note.name, note.image);
+          return { ...note, image: note.image };
+        }
+        // If it's a filename, get the public URL from Supabase storage
+        else {
+          const { data } = supabase.storage.from('images').getPublicUrl(note.image);
+          console.log('📁 Using Supabase storage for:', note.name, data.publicUrl);
+          return { ...note, image: data.publicUrl };
+        }
+      }
+      console.log('❌ No image for:', note.name);
+      return note;
+    });
+    
+    setNotes(notesWithImages);
+  }, [userId]);
 
   // Add game from search results
   const addGameFromSearch = async (game) => {
@@ -82,10 +60,11 @@ export const useGameManagement = (userId) => {
         release_date: game.released || '',
         players: game.tags?.find(tag => tag.name.includes('Multiplayer')) ? 2 : 1,
         publisher: game.publishers?.[0]?.name || 'Unknown',
-        image: '',
+        image: '', 
+        user_id: userId
       };
 
-      // Store the RAWG image URL directly
+      // Store the RAWG image URL directly - no need to download and re-upload
       if (game.background_image) {
         gameData.image = game.background_image;
         console.log('🎮 RAWG Game Data:', {
@@ -95,12 +74,18 @@ export const useGameManagement = (userId) => {
         });
       }
 
-      const insertedGame = await fetchWithAuth('/api/games', {
-        method: 'POST',
-        body: JSON.stringify(gameData),
-      });
+      const { data: insertedData, error } = await supabase
+        .from('notes')
+        .insert([gameData])
+        .select();
+        
+      if (error) {
+        console.error('Error adding game:', error);
+        alert(`Error adding game: ${error.message}`);
+        return;
+      }
       
-      console.log('✅ Game inserted successfully:', insertedGame);
+      console.log('✅ Game inserted successfully:', insertedData);
       
       await fetchNotes();
       alert(`"${game.name}" added to your library!`);
@@ -115,10 +100,10 @@ export const useGameManagement = (userId) => {
   const createNote = async (formData) => {
     if (!formData.name || !formData.description) return;
   
-    try {
-      await fetchWithAuth('/api/games', {
-        method: 'POST',
-        body: JSON.stringify({
+    const { error } = await supabase
+      .from('notes')
+      .insert([
+        {
           name: formData.name,
           description: formData.description,
           genre: formData.genre,
@@ -126,14 +111,16 @@ export const useGameManagement = (userId) => {
           players: parseInt(formData.players) || null,
           publisher: formData.publisher,
           image: formData.image,
-        }),
-      });
+          user_id: userId
+        }
+      ]);
       
-      await fetchNotes();
-    } catch (error) {
+    if (error) {
       console.error('Error creating note:', error);
-      alert('Failed to create game. Please try again.');
+      return;
     }
+    
+    await fetchNotes();
   };
 
   // Delete function - removes a game
@@ -142,27 +129,28 @@ export const useGameManagement = (userId) => {
       return;
     }
 
-    try {
-      await fetchWithAuth(`/api/games?id=${noteToDelete.id}`, {
-        method: 'DELETE',
-      });
-
-      // Also delete the image if it exists and it's not a RAWG URL
-      if (noteToDelete.image && !noteToDelete.image.startsWith('http')) {
-        try {
-          await fetchWithAuth(`/api/images?file=${encodeURIComponent(noteToDelete.image)}`, {
-            method: 'DELETE',
-          });
-        } catch (error) {
-          console.error('Error deleting image:', error);
-        }
-      }
-
-      await fetchNotes();
-    } catch (error) {
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', noteToDelete.id);
+      
+    if (error) {
       console.error('Error deleting note:', error);
-      alert('Failed to delete game. Please try again.');
+      return;
     }
+
+    // Also delete the image from storage if it exists and it's a Supabase file
+    if (noteToDelete.image && !noteToDelete.image.startsWith('http')) {
+      const fileName = noteToDelete.image.includes('/') 
+        ? noteToDelete.image.split('/').pop() 
+        : noteToDelete.image;
+        
+      await supabase.storage
+        .from('images')
+        .remove([fileName]);
+    }
+
+    await fetchNotes();
   };
 
   // Edit function - updates an existing game
@@ -173,38 +161,39 @@ export const useGameManagement = (userId) => {
     console.log('New image uploaded:', newImageUploaded);
     console.log('Original note image:', editingNote.image);
 
-    try {
-      // If a new image was uploaded, delete the old one (only if it's a Netlify file)
-      if (newImageUploaded && editingNote.image && !editingNote.image.startsWith('http')) {
-        try {
-          await fetchWithAuth(`/api/images?file=${encodeURIComponent(editingNote.image)}`, {
-            method: 'DELETE',
-          });
-          console.log('Deleted old image:', editingNote.image);
-        } catch (error) {
-          console.error('Error deleting old image:', error);
-        }
-      }
+    // If a new image was uploaded, delete the old one (only if it's a Supabase file)
+    if (newImageUploaded && editingNote.image && !editingNote.image.startsWith('http')) {
+      const oldFileName = editingNote.image.includes('/') 
+        ? editingNote.image.split('/').pop() 
+        : editingNote.image;
+        
+      console.log('Deleting old image:', oldFileName);
+      await supabase.storage
+        .from('images')
+        .remove([oldFileName]);
+    }
 
-      await fetchWithAuth(`/api/games?id=${editingNote.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          genre: formData.genre,
-          release_date: formData.releaseDate,
-          players: parseInt(formData.players) || null,
-          publisher: formData.publisher,
-          image: formData.image
-        }),
-      });
+    const { error } = await supabase
+      .from('notes')
+      .update({
+        name: formData.name,
+        description: formData.description,
+        genre: formData.genre,
+        release_date: formData.releaseDate,
+        players: parseInt(formData.players) || null,
+        publisher: formData.publisher,
+        image: formData.image
+      })
+      .eq('id', editingNote.id);
       
-      console.log('Note updated successfully');
-      await fetchNotes();
-    } catch (error) {
+    if (error) {
       console.error('Error updating note:', error);
       alert(`Update error: ${error.message}`);
+      return;
     }
+    
+    console.log('Note updated successfully');
+    await fetchNotes();
   };
 
   // Find and update missing images for existing games
@@ -257,13 +246,17 @@ export const useGameManagement = (userId) => {
             console.log(`📷 Found image for ${game.name}:`, bestMatch.background_image);
             
             // Update the game with the new image
-            await fetchWithAuth(`/api/games?id=${game.id}`, {
-              method: 'PUT',
-              body: JSON.stringify({ image: bestMatch.background_image }),
-            });
-            
-            console.log(`✅ Updated image for ${game.name}`);
-            updatedCount++;
+            const { error } = await supabase
+              .from('notes')
+              .update({ image: bestMatch.background_image })
+              .eq('id', game.id);
+              
+            if (error) {
+              console.error(`❌ Failed to update ${game.name}:`, error);
+            } else {
+              console.log(`✅ Updated image for ${game.name}`);
+              updatedCount++;
+            }
           } else {
             console.log(`❌ No image found for ${game.name}`);
           }
