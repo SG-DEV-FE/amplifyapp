@@ -77,12 +77,18 @@ export const useGameManagement = (userId) => {
       // Format the game data from RAWG API
       const gameData = {
         name: game.name,
-        description: game.platforms?.map(p => p.platform.name).join(', ') || 'Multiple Platforms',
+        // If a specific platform was selected, use it; otherwise use all platforms
+        description: game.selectedPlatform 
+          ? game.selectedPlatform.name 
+          : game.platforms?.map(p => p.platform.name).join(', ') || 'Multiple Platforms',
         genre: game.genres?.map(g => g.name).join(', ') || '',
         release_date: game.released || '',
         players: game.tags?.find(tag => tag.name.includes('Multiplayer')) ? 2 : 1,
         publisher: game.publishers?.[0]?.name || 'Unknown',
         image: '',
+        // Store the selected platform information
+        selectedPlatform: game.selectedPlatform || null,
+        rawgId: game.id, // Store original RAWG ID
       };
 
       // Store the RAWG image URL directly
@@ -90,6 +96,7 @@ export const useGameManagement = (userId) => {
         gameData.image = game.background_image;
         console.log('🎮 RAWG Game Data:', {
           name: game.name,
+          platform: game.selectedPlatform?.name || 'Multiple',
           imageUrl: game.background_image,
           gameData: gameData
         });
@@ -103,7 +110,11 @@ export const useGameManagement = (userId) => {
       console.log('✅ Game inserted successfully:', insertedGame);
       
       await fetchNotes();
-      alert(`"${game.name}" added to your library!`);
+      
+      const platformText = game.selectedPlatform 
+        ? ` for ${game.selectedPlatform.name}` 
+        : '';
+      alert(`"${game.name}"${platformText} added to your library!`);
       
     } catch (error) {
       console.error('Error adding game from search:', error);
@@ -126,6 +137,8 @@ export const useGameManagement = (userId) => {
           players: parseInt(formData.players) || null,
           publisher: formData.publisher,
           image: formData.image,
+          selectedPlatform: null, // Manual entries don't have selectedPlatform
+          rawgId: null, // Manual entries don't have RAWG ID
         }),
       });
       
@@ -186,17 +199,22 @@ export const useGameManagement = (userId) => {
         }
       }
 
+      const updateData = {
+        name: formData.name,
+        description: formData.description,
+        genre: formData.genre,
+        release_date: formData.releaseDate,
+        players: parseInt(formData.players) || null,
+        publisher: formData.publisher,
+        image: formData.image,
+        // Preserve the selectedPlatform if it exists
+        selectedPlatform: editingNote.selectedPlatform || null,
+        rawgId: editingNote.rawgId || null,
+      };
+
       await fetchWithAuth(`/api/games?id=${editingNote.id}`, {
         method: 'PUT',
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          genre: formData.genre,
-          release_date: formData.releaseDate,
-          players: parseInt(formData.players) || null,
-          publisher: formData.publisher,
-          image: formData.image
-        }),
+        body: JSON.stringify(updateData),
       });
       
       console.log('Note updated successfully');

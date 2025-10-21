@@ -76,26 +76,63 @@ const GameModal = ({ isOpen, onClose, gameData }) => {
 
           {/* Modal content */}
           <div className="sm:flex sm:items-start">
+            {/* Game Image */}
+            {gameData.image && (
+              <div className="flex-shrink-0 mb-4 sm:mb-0 sm:mr-4">
+                <img
+                  src={gameData.image}
+                  alt={gameData.name}
+                  className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg mx-auto sm:mx-0"
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                  }}
+                />
+              </div>
+            )}
+
             <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
               <h3
-                className="text-lg leading-6 font-semibold text-gray-900 mb-4"
+                className="text-xl leading-6 font-bold text-gray-900 mb-4"
                 id="modal-title"
               >
                 {gameData.name}
               </h3>
 
-              <div className="space-y-3">
-                <div>
-                  <span className="font-semibold text-gray-700">
-                    Platform:{" "}
-                  </span>
-                  <span className="text-gray-600">{gameData.description}</span>
-                </div>
+              <div className="space-y-4">
+                {/* Platform Badge - Show actual selected platform */}
+                {gameData.selectedPlatform ? (
+                  <div>
+                    <span className="font-semibold text-gray-700">
+                      Platform:{" "}
+                    </span>
+                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+                      {gameData.selectedPlatform.name}
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="font-semibold text-gray-700">
+                      Platform:{" "}
+                    </span>
+                    <span className="text-gray-600">
+                      {gameData.description}
+                    </span>
+                  </div>
+                )}
 
                 {gameData.genre && (
                   <div>
                     <span className="font-semibold text-gray-700">Genre: </span>
-                    <span className="text-gray-600">{gameData.genre}</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {gameData.genre.split(",").map((genre, index) => (
+                        <span
+                          key={index}
+                          className="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                        >
+                          {genre.trim()}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -115,7 +152,11 @@ const GameModal = ({ isOpen, onClose, gameData }) => {
                     <span className="font-semibold text-gray-700">
                       Players:{" "}
                     </span>
-                    <span className="text-gray-600">{gameData.players}</span>
+                    <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                      {gameData.players === 1
+                        ? "1 Player"
+                        : `${gameData.players} Players`}
+                    </span>
                   </div>
                 )}
 
@@ -124,7 +165,21 @@ const GameModal = ({ isOpen, onClose, gameData }) => {
                     <span className="font-semibold text-gray-700">
                       Publisher:{" "}
                     </span>
-                    <span className="text-gray-600">{gameData.publisher}</span>
+                    <span className="text-gray-600 font-medium">
+                      {gameData.publisher}
+                    </span>
+                  </div>
+                )}
+
+                {/* Creation date */}
+                {gameData.created_at && (
+                  <div className="pt-2 border-t border-gray-200">
+                    <span className="font-semibold text-gray-700">
+                      Added to Library:{" "}
+                    </span>
+                    <span className="text-gray-500 text-sm">
+                      {new Date(gameData.created_at).toLocaleDateString()}
+                    </span>
                   </div>
                 )}
               </div>
