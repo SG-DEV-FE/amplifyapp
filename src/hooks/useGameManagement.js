@@ -145,7 +145,7 @@ export const useGameManagement = (userId) => {
           players: parseInt(formData.players) || null,
           publisher: formData.publisher,
           image: formData.image,
-          selectedPlatform: null, // Manual entries don't have selectedPlatform
+          selectedPlatform: formData.selectedPlatform,
           rawgId: null, // Manual entries don't have RAWG ID
         }),
       });
@@ -256,9 +256,10 @@ export const useGameManagement = (userId) => {
         release_date: formData.releaseDate,
         players: parseInt(formData.players) || null,
         publisher: formData.publisher,
-        image: formData.image,
-        // Preserve the selectedPlatform if it exists
-        selectedPlatform: editingNote.selectedPlatform || null,
+        // Use new image if uploaded, otherwise keep original
+        image: newImageUploaded ? formData.image : editingNote.image,
+        // Update selectedPlatform from form data
+        selectedPlatform: formData.selectedPlatform,
         rawgId: editingNote.rawgId || null,
       };
 

@@ -1,6 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
+const RAWG_API_KEY = process.env.REACT_APP_RAWG_API_KEY || "";
+const RAWG_BASE_URL = "https://api.rawg.io/api";
+
+// Common gaming platforms (fallback if API fails)
+const COMMON_PLATFORMS = [
+  { id: 4, name: "PC" },
+  { id: 187, name: "PlayStation 5" },
+  { id: 18, name: "PlayStation 4" },
+  { id: 16, name: "PlayStation 3" },
+  { id: 15, name: "PlayStation 2" },
+  { id: 27, name: "PlayStation" },
+  { id: 1, name: "Xbox One" },
+  { id: 186, name: "Xbox Series S/X" },
+  { id: 14, name: "Xbox 360" },
+  { id: 80, name: "Xbox" },
+  { id: 7, name: "Nintendo Switch" },
+  { id: 8, name: "Nintendo 3DS" },
+  { id: 9, name: "Nintendo DS" },
+  { id: 13, name: "Nintendo DSi" },
+  { id: 5, name: "macOS" },
+  { id: 6, name: "Linux" },
+  { id: 3, name: "iOS" },
+  { id: 21, name: "Android" },
+  { id: 10, name: "Wii U" },
+  { id: 11, name: "Wii" },
+];
+
 const initialFormState = {
   name: "",
   description: "",
@@ -9,6 +36,7 @@ const initialFormState = {
   players: "",
   publisher: "",
   image: "",
+  selectedPlatform: null,
 };
 
 const GameForm = ({
@@ -21,6 +49,36 @@ const GameForm = ({
 }) => {
   const [formData, setFormData] = useState(initialFormState);
   const [newImageUploaded, setNewImageUploaded] = useState(false);
+  const [availablePlatforms, setAvailablePlatforms] =
+    useState(COMMON_PLATFORMS);
+  const [platformsLoading, setPlatformsLoading] = useState(false);
+
+  // Fetch platforms from RAWG API
+  useEffect(() => {
+    const fetchPlatforms = async () => {
+      if (availablePlatforms.length > COMMON_PLATFORMS.length) return; // Already fetched
+
+      setPlatformsLoading(true);
+      try {
+        const response = await fetch(
+          `${RAWG_BASE_URL}/platforms?key=${RAWG_API_KEY}&page_size=50`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setAvailablePlatforms(data.results || COMMON_PLATFORMS);
+        }
+      } catch (error) {
+        console.error("Error fetching platforms:", error);
+        // Keep COMMON_PLATFORMS as fallback
+      } finally {
+        setPlatformsLoading(false);
+      }
+    };
+
+    if (show) {
+      fetchPlatforms();
+    }
+  }, [show, availablePlatforms.length]);
 
   // Update form data when editing
   useEffect(() => {
@@ -38,6 +96,7 @@ const GameForm = ({
         players: editingNote.players || "",
         publisher: editingNote.publisher || "",
         image: imageFileName || "",
+        selectedPlatform: editingNote.selectedPlatform || null,
       });
       setNewImageUploaded(false);
     } else {
@@ -165,27 +224,70 @@ const GameForm = ({
 
                   {/* System Platform */}
                   <div className="col-span-6">
-                    <label
-                      htmlFor="system-platform"
-                      className="block text-sm text-left font-medium text-gray-700 py-4"
-                    >
+                    <label className="block text-sm text-left font-medium text-gray-700 py-4">
                       System / Platform
                     </label>
-                    <div className="mt-1 flex rounded-md shadow-sm">
-                      <input
-                        type="text"
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            description: e.target.value,
-                          })
-                        }
-                        placeholder="System Platform"
-                        value={formData.description}
-                        name="system-platform"
-                        id="system-platform"
-                        className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
-                      />
+                    <div className="mt-1">
+                      {platformsLoading ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600 mr-2"></div>
+                          <span className="text-sm text-gray-500">
+                            Loading platforms...
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                          <div className="grid grid-cols-1 gap-2">
+                            <label className="flex items-center cursor-pointer">
+                              <input
+                                type="radio"
+                                name="platform"
+                                value=""
+                                checked={!formData.selectedPlatform}
+                                onChange={() =>
+                                  setFormData({
+                                    ...formData,
+                                    selectedPlatform: null,
+                                  })
+                                }
+                                className="form-radio h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">
+                                No specific platform
+                              </span>
+                            </label>
+                            {availablePlatforms.map((platform) => (
+                              <label
+                                key={platform.id}
+                                className="flex items-center cursor-pointer"
+                              >
+                                <input
+                                  type="radio"
+                                  name="platform"
+                                  value={platform.id}
+                                  checked={
+                                    formData.selectedPlatform?.id ===
+                                    platform.id
+                                  }
+                                  onChange={() =>
+                                    setFormData({
+                                      ...formData,
+                                      selectedPlatform: {
+                                        id: platform.id,
+                                        name: platform.name,
+                                      },
+                                    })
+                                  }
+                                  className="form-radio h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">
+                                  {platform.name}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
