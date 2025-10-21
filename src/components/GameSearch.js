@@ -145,17 +145,20 @@ const GameSearch = ({
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="container mx-auto py-8 px-4">
+      <div className="w-full max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto">
         <div className="relative">
-          <div className="flex mx-2 sm:mx-0 items-center bg-white rounded-lg border border-gray-300 shadow-sm">
-            <FontAwesomeIcon icon="search" className="text-gray-400 ml-4" />
+          <div className="flex items-center bg-white rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition-shadow">
+            <FontAwesomeIcon
+              icon="search"
+              className="text-gray-400 ml-3 sm:ml-4"
+            />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for games to add to your library..."
-              className="w-full px-4 py-3 text-gray-700 bg-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-gray-700 bg-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {searchQuery && (
               <button
@@ -169,7 +172,7 @@ const GameSearch = ({
             {isMobile && (
               <button
                 onClick={() => setShowBarcodeScanner(true)}
-                className="text-blue-500 hover:text-blue-700 mr-4 p-2"
+                className="text-blue-500 hover:text-blue-700 mr-3 sm:mr-4 p-2"
                 title="Scan barcode"
               >
                 <FontAwesomeIcon icon="barcode" className="text-lg" />
