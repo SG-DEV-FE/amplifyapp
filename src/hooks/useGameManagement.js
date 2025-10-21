@@ -174,10 +174,6 @@ export const useGameManagement = (userId) => {
 
     setIsDeletingGame(true);
 
-    // Optimistically remove the game from UI immediately
-    const originalNotes = [...notes];
-    setNotes(notes.filter((note) => note.id !== noteToDelete.id));
-
     try {
       console.log("🗑️ Deleting game:", noteToDelete.name);
 
@@ -216,9 +212,6 @@ export const useGameManagement = (userId) => {
       console.log("✅ Game deletion completed successfully");
     } catch (error) {
       console.error("Error deleting note:", error);
-
-      // Restore the original notes on error
-      setNotes(originalNotes);
 
       alert(
         `Failed to delete "${noteToDelete.name}". Please try again.\n\nError: ${error.message}`
