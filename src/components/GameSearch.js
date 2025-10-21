@@ -146,7 +146,7 @@ const GameSearch = ({
 
   return (
     <div className="container mx-auto py-8">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <div className="relative">
           <div className="flex mx-2 sm:mx-0 items-center bg-white rounded-lg border border-gray-300 shadow-sm">
             <FontAwesomeIcon icon="search" className="text-gray-400 ml-4" />
