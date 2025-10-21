@@ -31,7 +31,11 @@ const fetchWithAuth = async (url, options = {}) => {
   return response.json();
 };
 
-export const useGameManagement = (userId, onShowToast) => {
+export const useGameManagement = (
+  userId,
+  onShowToast,
+  onShowHeartNotification
+) => {
   const [notes, setNotes] = useState([]);
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
@@ -426,6 +430,11 @@ export const useGameManagement = (userId, onShowToast) => {
 
       // Update local state
       setNotes(notes.map((n) => (n.id === note.id ? updatedGame : n)));
+
+      // Show heart notification
+      if (onShowHeartNotification) {
+        onShowHeartNotification(updatedGame.isWishlisted);
+      }
     } catch (error) {
       console.error("Error toggling wishlist:", error);
       if (onShowToast) {
