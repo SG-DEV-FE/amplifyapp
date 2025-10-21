@@ -186,27 +186,6 @@ const platforms = [
       </svg>
     ),
   },
-  {
-    name: "PC Gaming",
-    url: "#",
-    color: "#4A90E2",
-    logo: (
-      <svg
-        width="50px"
-        height="50px"
-        viewBox="0 0 50 50"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <g>
-          <path
-            d="M9,12c-1.1,0-2,0.9-2,2v16c0,1.1,0.9,2,2,2h23c1.1,0,2-0.9,2-2V14c0-1.1-0.9-2-2-2H9z M10,15h21v13H10V15z
-           M17,33v2h-5v3h16v-3h-5v-2H17z"
-            fill="#4A90E2"
-          />
-        </g>
-      </svg>
-    ),
-  },
 ];
 
 const GamingPlatformLogos = ({ mode = "rotate", interval = 3000 }) => {
