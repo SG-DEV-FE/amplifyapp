@@ -215,7 +215,7 @@ const GameLibrary = ({
       {/* Filters Section - Always at top and centered */}
       {notes.length > 0 && availablePlatforms.length > 0 && (
         <div className="w-full bg-black py-6 border-b border-gray-800">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto contents px-4">
             {/* Wishlist Filter - Centered */}
             <div className="flex justify-center mb-6">
               <label className="flex items-center cursor-pointer">
