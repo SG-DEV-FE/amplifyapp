@@ -150,7 +150,38 @@ const GameLibrary = ({ notes, onViewInfo, onEdit, onDelete }) => {
         {/* Platform Filter */}
         {availablePlatforms.length > 0 && (
           <div className="px-4 py-6">
-            <div className="flex flex-wrap items-center justify-center gap-2">
+            {/* Mobile Dropdown Filter */}
+            <div className="block md:hidden mb-4">
+              <label
+                htmlFor="platform-select"
+                className="block text-white text-sm font-medium mb-2"
+              >
+                Filter by Platform:
+              </label>
+              <select
+                id="platform-select"
+                value={selectedPlatform}
+                onChange={(e) => setSelectedPlatform(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">All Platforms ({notes.length})</option>
+                {availablePlatforms.map((platform) => {
+                  const count = notes.filter(
+                    (note) =>
+                      note.selectedPlatform &&
+                      note.selectedPlatform.id === platform.id
+                  ).length;
+                  return (
+                    <option key={platform.id} value={platform.id.toString()}>
+                      {platform.name} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Desktop Button Filter */}
+            <div className="hidden md:flex flex-wrap items-center justify-center gap-2">
               <span className="text-white text-sm font-medium mr-3">
                 Filter by Platform:
               </span>
