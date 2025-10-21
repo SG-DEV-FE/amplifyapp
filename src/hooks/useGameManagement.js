@@ -98,6 +98,7 @@ export const useGameManagement = (userId) => {
         // Store the selected platform information
         selectedPlatform: game.selectedPlatform || null,
         rawgId: game.id, // Store original RAWG ID
+        isWishlisted: game.isWishlisted || false, // Add wishlist status
       };
 
       // Store the RAWG image URL directly
@@ -147,6 +148,7 @@ export const useGameManagement = (userId) => {
           image: formData.image,
           selectedPlatform: formData.selectedPlatform,
           rawgId: null, // Manual entries don't have RAWG ID
+          isWishlisted: formData.isWishlisted || false, // Add wishlist status
         }),
       });
 
@@ -261,6 +263,7 @@ export const useGameManagement = (userId) => {
         // Update selectedPlatform from form data
         selectedPlatform: formData.selectedPlatform,
         rawgId: editingNote.rawgId || null,
+        isWishlisted: editingNote.isWishlisted || false, // Preserve wishlist status
       };
 
       await fetchWithAuth(`/api/games?id=${editingNote.id}`, {
@@ -368,6 +371,27 @@ export const useGameManagement = (userId) => {
     }
   };
 
+  // Toggle wishlist status for a game
+  const toggleWishlist = async (note) => {
+    try {
+      const updatedGame = {
+        ...note,
+        isWishlisted: !note.isWishlisted,
+      };
+
+      await fetchWithAuth(`/api/games?id=${note.id}`, {
+        method: "PUT",
+        body: JSON.stringify(updatedGame),
+      });
+
+      // Update local state
+      setNotes(notes.map((n) => (n.id === note.id ? updatedGame : n)));
+    } catch (error) {
+      console.error("Error toggling wishlist:", error);
+      alert("Failed to update wishlist status. Please try again.");
+    }
+  };
+
   return {
     notes,
     isUpdatingImages,
@@ -378,5 +402,6 @@ export const useGameManagement = (userId) => {
     deleteNote,
     updateNote,
     updateMissingImages,
+    toggleWishlist,
   };
 };

@@ -37,6 +37,7 @@ const initialFormState = {
   publisher: "",
   image: "",
   selectedPlatform: null,
+  isWishlisted: false,
 };
 
 const GameForm = ({
@@ -97,6 +98,7 @@ const GameForm = ({
         publisher: editingNote.publisher || "",
         image: imageFileName || "",
         selectedPlatform: editingNote.selectedPlatform || null,
+        isWishlisted: editingNote.isWishlisted || false,
       });
       setNewImageUploaded(false);
     } else {

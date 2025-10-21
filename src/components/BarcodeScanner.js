@@ -11,6 +11,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   const [error, setError] = useState("");
   const [searchingGame, setSearchingGame] = useState(false);
   const [scannedCode, setScannedCode] = useState("");
+  const [addToWishlist, setAddToWishlist] = useState(false);
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
 
@@ -171,10 +172,14 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           const rawgGame = await searchRAWGByName(gameInfo.name);
 
           if (rawgGame) {
-            onGameFound(rawgGame);
+            const gameWithWishlist = {
+              ...rawgGame,
+              isWishlisted: addToWishlist,
+            };
+            onGameFound(gameWithWishlist);
             // Automatically add the game
             if (onGameAdd) {
-              await onGameAdd(rawgGame);
+              await onGameAdd(gameWithWishlist);
             }
           } else {
             setError(
@@ -199,6 +204,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       searchRAWGByName,
       onGameFound,
       onGameAdd,
+      addToWishlist,
     ]
   );
 
@@ -289,6 +295,26 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
                 Point your camera at a game's barcode to automatically add it to
                 your library.
               </p>
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={addToWishlist}
+                    onChange={(e) => setAddToWishlist(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 font-medium">
+                    Add to wishlist instead of library
+                  </span>
+                  <svg
+                    className="ml-2 w-4 h-4 text-red-500"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </label>
+              </div>
               {scannedCode && (
                 <p className="text-sm text-gray-500 mb-2">
                   Last scanned: {scannedCode}

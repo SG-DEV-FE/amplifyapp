@@ -1,7 +1,14 @@
 import React, { useState, useMemo } from "react";
 import psLogo from "../ps-logo.svg";
 
-const GameCard = ({ note, onViewInfo, onEdit, onDelete, isDeletingGame }) => {
+const GameCard = ({
+  note,
+  onViewInfo,
+  onEdit,
+  onDelete,
+  onToggleWishlist,
+  isDeletingGame,
+}) => {
   console.log("🖼️ Rendering note:", {
     name: note.name,
     imageUrl: note.image,
@@ -49,6 +56,28 @@ const GameCard = ({ note, onViewInfo, onEdit, onDelete, isDeletingGame }) => {
             </div>
           </div>
         )}
+        {/* Wishlist Heart Icon */}
+        <button
+          onClick={() => onToggleWishlist(note)}
+          className="absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 transition-all duration-200"
+          title={note.isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+        >
+          <svg
+            className={`w-5 h-5 ${
+              note.isWishlisted ? "text-red-500" : "text-white"
+            }`}
+            fill={note.isWishlisted ? "currentColor" : "none"}
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+        </button>
         {note.selectedPlatform && (
           <div className="absolute bottom-2 left-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
             {note.selectedPlatform.name}
@@ -111,9 +140,11 @@ const GameLibrary = ({
   onViewInfo,
   onEdit,
   onDelete,
+  onToggleWishlist,
   isDeletingGame = false,
 }) => {
   const [selectedPlatform, setSelectedPlatform] = useState("all");
+  const [showWishlistOnly, setShowWishlistOnly] = useState(false);
 
   // Get unique platforms from all games
   const availablePlatforms = useMemo(() => {
@@ -130,20 +161,27 @@ const GameLibrary = ({
     return platforms.sort((a, b) => a.name.localeCompare(b.name));
   }, [notes]);
 
-  // Filter and sort games based on selected platform
+  // Filter and sort games based on selected platform and wishlist
   const filteredNotes = useMemo(() => {
     // Sort notes alphabetically by name
     const sortedNotes = [...notes].sort((a, b) => a.name.localeCompare(b.name));
 
-    if (selectedPlatform === "all") {
-      return sortedNotes;
+    // Apply wishlist filter first
+    let filtered = sortedNotes;
+    if (showWishlistOnly) {
+      filtered = filtered.filter((note) => note.isWishlisted);
     }
-    return sortedNotes.filter(
+
+    // Then apply platform filter
+    if (selectedPlatform === "all") {
+      return filtered;
+    }
+    return filtered.filter(
       (note) =>
         note.selectedPlatform &&
         note.selectedPlatform.id === parseInt(selectedPlatform)
     );
-  }, [notes, selectedPlatform]);
+  }, [notes, selectedPlatform, showWishlistOnly]);
   if (notes.length === 0) {
     return (
       <div className="bg-black">
@@ -178,6 +216,29 @@ const GameLibrary = ({
         {/* Platform Filter - Show if we have games and at least one has a selectedPlatform */}
         {notes.length > 0 && availablePlatforms.length > 0 && (
           <div className="px-4 py-6">
+            {/* Wishlist Filter */}
+            <div className="mb-4">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showWishlistOnly}
+                  onChange={(e) => setShowWishlistOnly(e.target.checked)}
+                  className="form-checkbox h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                />
+                <span className="ml-2 text-white text-sm font-medium">
+                  Show wishlist only (
+                  {notes.filter((note) => note.isWishlisted).length} games)
+                </span>
+                <svg
+                  className="ml-2 w-4 h-4 text-red-500"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </label>
+            </div>
+
             {/* Mobile Dropdown Filter */}
             <div className="block md:hidden mb-4">
               <label
@@ -279,6 +340,7 @@ const GameLibrary = ({
                 onViewInfo={onViewInfo}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onToggleWishlist={onToggleWishlist}
                 isDeletingGame={isDeletingGame}
               />
             ))}

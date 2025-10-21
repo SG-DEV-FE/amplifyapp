@@ -23,6 +23,7 @@ const GameSearch = ({
   const [selectedGameForPlatforms, setSelectedGameForPlatforms] =
     useState(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
+  const [addToWishlist, setAddToWishlist] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   // Helper function to check if a game has been recently added
@@ -113,6 +114,7 @@ const GameSearch = ({
           ...selectedGameForPlatforms,
           selectedPlatform: platform.platform,
           platformSpecific: true,
+          isWishlisted: addToWishlist, // Add wishlist flag
         };
         await onGameAdd(gameWithPlatform);
       }
@@ -120,6 +122,7 @@ const GameSearch = ({
       // Reset platform selection state but keep search results open
       setSelectedGameForPlatforms(null);
       setSelectedPlatforms([]);
+      setAddToWishlist(false); // Reset wishlist flag
       // Don't clear search query or results to allow adding more games
     } catch (error) {
       console.error("Error adding game:", error);
@@ -129,6 +132,7 @@ const GameSearch = ({
   const handleCancelPlatformSelection = () => {
     setSelectedGameForPlatforms(null);
     setSelectedPlatforms([]);
+    setAddToWishlist(false);
   };
 
   const clearSearch = () => {
@@ -137,6 +141,7 @@ const GameSearch = ({
     setShowSearchResults(false);
     setSelectedGameForPlatforms(null);
     setSelectedPlatforms([]);
+    setAddToWishlist(false);
   };
 
   return (
@@ -263,6 +268,32 @@ const GameSearch = ({
               </div>
 
               <div className="p-4 max-h-48 overflow-y-auto">
+                {/* Wishlist Option */}
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={addToWishlist}
+                      onChange={(e) => setAddToWishlist(e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700 font-medium">
+                      Add to wishlist instead of library
+                    </span>
+                    <svg
+                      className="ml-2 w-4 h-4 text-red-500"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </label>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Wishlisted games won't appear in your main library until you
+                    toggle them off the wishlist.
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {selectedGameForPlatforms.platforms?.map((platform) => (
                     <label

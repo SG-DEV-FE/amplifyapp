@@ -47,6 +47,7 @@ function GameLibraryApp() {
     deleteNote,
     updateNote,
     updateMissingImages,
+    toggleWishlist,
   } = useGameManagement(user.id);
 
   useEffect(() => {
@@ -171,6 +172,7 @@ function GameLibraryApp() {
             onViewInfo={handleViewInfo}
             onEdit={handleEdit}
             onDelete={deleteNote}
+            onToggleWishlist={toggleWishlist}
             isDeletingGame={isDeletingGame}
           />
 
