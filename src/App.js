@@ -40,6 +40,7 @@ function GameLibraryApp() {
   const {
     notes,
     isUpdatingImages,
+    isDeletingGame,
     fetchNotes,
     addGameFromSearch,
     createNote,
@@ -170,6 +171,7 @@ function GameLibraryApp() {
             onViewInfo={handleViewInfo}
             onEdit={handleEdit}
             onDelete={deleteNote}
+            isDeletingGame={isDeletingGame}
           />
 
           {/* Game Modal Component */}

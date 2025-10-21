@@ -34,6 +34,7 @@ const fetchWithAuth = async (url, options = {}) => {
 export const useGameManagement = (userId) => {
   const [notes, setNotes] = useState([]);
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
+  const [isDeletingGame, setIsDeletingGame] = useState(false);
 
   // Fetch user's personal library
   const fetchNotes = useCallback(async () => {
@@ -159,15 +160,33 @@ export const useGameManagement = (userId) => {
   // Delete function - removes a game
   const deleteNote = async (noteToDelete) => {
     if (
-      !window.confirm(`Are you sure you want to delete "${noteToDelete.name}"?`)
+      !window.confirm(
+        `Are you sure you want to delete "${noteToDelete.name}"?\n\nThis action cannot be undone.`
+      )
     ) {
       return;
     }
 
+    if (isDeletingGame) {
+      alert("Please wait - another game is currently being deleted.");
+      return;
+    }
+
+    setIsDeletingGame(true);
+
+    // Optimistically remove the game from UI immediately
+    const originalNotes = [...notes];
+    setNotes(notes.filter((note) => note.id !== noteToDelete.id));
+
     try {
+      console.log("🗑️ Deleting game:", noteToDelete.name);
+
+      // Delete the game from the database
       await fetchWithAuth(`/api/games?id=${noteToDelete.id}`, {
         method: "DELETE",
       });
+
+      console.log("✅ Game deleted from database");
 
       // Also delete the image if it exists and it's not a RAWG URL
       if (noteToDelete.image && !noteToDelete.image.startsWith("http")) {
@@ -178,15 +197,34 @@ export const useGameManagement = (userId) => {
               method: "DELETE",
             }
           );
+          console.log("🖼️ Associated image deleted");
         } catch (error) {
           console.error("Error deleting image:", error);
+          // Don't fail the whole operation if image deletion fails
         }
       }
 
+      // Refresh the games list to ensure consistency
+      console.log("🔄 Refreshing games list...");
       await fetchNotes();
+
+      // Show success message
+      alert(
+        `"${noteToDelete.name}" has been successfully deleted from your library.`
+      );
+
+      console.log("✅ Game deletion completed successfully");
     } catch (error) {
       console.error("Error deleting note:", error);
-      alert("Failed to delete game. Please try again.");
+
+      // Restore the original notes on error
+      setNotes(originalNotes);
+
+      alert(
+        `Failed to delete "${noteToDelete.name}". Please try again.\n\nError: ${error.message}`
+      );
+    } finally {
+      setIsDeletingGame(false);
     }
   };
 
@@ -339,6 +377,7 @@ export const useGameManagement = (userId) => {
   return {
     notes,
     isUpdatingImages,
+    isDeletingGame,
     fetchNotes,
     addGameFromSearch,
     createNote,

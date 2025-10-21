@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import psLogo from "../ps-logo.svg";
 
-const GameCard = ({ note, onViewInfo, onEdit, onDelete }) => {
+const GameCard = ({ note, onViewInfo, onEdit, onDelete, isDeletingGame }) => {
   console.log("🖼️ Rendering note:", {
     name: note.name,
     imageUrl: note.image,
@@ -77,17 +77,35 @@ const GameCard = ({ note, onViewInfo, onEdit, onDelete }) => {
         </button>
         <button
           type="button"
-          className="px-4 py-2 bg-red-500 text-white rounded-full shadow-sm hover:bg-red-300 focus:ring-2 focus:ring-300"
+          className={`px-4 py-2 text-white rounded-full shadow-sm focus:ring-2 focus:ring-300 ${
+            isDeletingGame
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-red-500 hover:bg-red-300"
+          }`}
           onClick={() => onDelete(note)}
+          disabled={isDeletingGame}
         >
-          Delete
+          {isDeletingGame ? (
+            <>
+              <div className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+              Deleting...
+            </>
+          ) : (
+            "Delete"
+          )}
         </button>
       </div>
     </div>
   );
 };
 
-const GameLibrary = ({ notes, onViewInfo, onEdit, onDelete }) => {
+const GameLibrary = ({
+  notes,
+  onViewInfo,
+  onEdit,
+  onDelete,
+  isDeletingGame = false,
+}) => {
   const [selectedPlatform, setSelectedPlatform] = useState("all");
 
   // Get unique platforms from all games
@@ -147,8 +165,8 @@ const GameLibrary = ({ notes, onViewInfo, onEdit, onDelete }) => {
   return (
     <div className="bg-black">
       <div className="container mx-auto">
-        {/* Platform Filter */}
-        {availablePlatforms.length > 0 && (
+        {/* Platform Filter - Show if we have games and at least one has a selectedPlatform */}
+        {notes.length > 0 && availablePlatforms.length > 0 && (
           <div className="px-4 py-6">
             {/* Mobile Dropdown Filter */}
             <div className="block md:hidden mb-4">
@@ -251,6 +269,7 @@ const GameLibrary = ({ notes, onViewInfo, onEdit, onDelete }) => {
                 onViewInfo={onViewInfo}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                isDeletingGame={isDeletingGame}
               />
             ))}
           </div>
