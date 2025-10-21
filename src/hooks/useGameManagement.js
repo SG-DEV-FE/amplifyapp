@@ -31,7 +31,7 @@ const fetchWithAuth = async (url, options = {}) => {
   return response.json();
 };
 
-export const useGameManagement = (userId) => {
+export const useGameManagement = (userId, onShowToast) => {
   const [notes, setNotes] = useState([]);
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
@@ -124,10 +124,18 @@ export const useGameManagement = (userId) => {
       const platformText = game.selectedPlatform
         ? ` for ${game.selectedPlatform.name}`
         : "";
-      alert(`"${game.name}"${platformText} added to your library!`);
+      if (onShowToast) {
+        onShowToast(
+          `"${game.name}"${platformText} added to your ${
+            game.isWishlisted ? "wishlist" : "library"
+          }!`
+        );
+      }
     } catch (error) {
       console.error("Error adding game from search:", error);
-      alert("Failed to add game. Please try the manual form.");
+      if (onShowToast) {
+        onShowToast("Failed to add game. Please try the manual form.", "error");
+      }
     }
   };
 
@@ -155,7 +163,9 @@ export const useGameManagement = (userId) => {
       await fetchNotes();
     } catch (error) {
       console.error("Error creating note:", error);
-      alert("Failed to create game. Please try again.");
+      if (onShowToast) {
+        onShowToast("Failed to create game. Please try again.", "error");
+      }
     }
   };
 
@@ -170,15 +180,21 @@ export const useGameManagement = (userId) => {
     }
 
     if (isDeletingGame) {
-      alert("Please wait - another game is currently being deleted.");
+      if (onShowToast) {
+        onShowToast(
+          "Please wait - another game is currently being deleted.",
+          "error"
+        );
+      }
       return;
     }
 
     setIsDeletingGame(true);
 
-    try {
-      console.log("🗑️ Deleting game:", noteToDelete.name);
+    // Store original notes for error recovery
+    const originalNotes = [...notes];
 
+    try {
       // Delete the game from the database
       await fetchWithAuth(`/api/games?id=${noteToDelete.id}`, {
         method: "DELETE",
@@ -207,17 +223,25 @@ export const useGameManagement = (userId) => {
       await fetchNotes();
 
       // Show success message
-      alert(
-        `"${noteToDelete.name}" has been successfully deleted from your library.`
-      );
+      if (onShowToast) {
+        onShowToast(
+          `"${noteToDelete.name}" has been successfully deleted from your library.`
+        );
+      }
 
       console.log("✅ Game deletion completed successfully");
     } catch (error) {
       console.error("Error deleting note:", error);
 
-      alert(
-        `Failed to delete "${noteToDelete.name}". Please try again.\n\nError: ${error.message}`
-      );
+      // Restore the original notes on error
+      setNotes(originalNotes);
+
+      if (onShowToast) {
+        onShowToast(
+          `Failed to delete "${noteToDelete.name}". Please try again.`,
+          "error"
+        );
+      }
     } finally {
       setIsDeletingGame(false);
     }
@@ -275,7 +299,9 @@ export const useGameManagement = (userId) => {
       await fetchNotes();
     } catch (error) {
       console.error("Error updating note:", error);
-      alert(`Update error: ${error.message}`);
+      if (onShowToast) {
+        onShowToast(`Update error: ${error.message}`, "error");
+      }
     }
   };
 
@@ -292,7 +318,9 @@ export const useGameManagement = (userId) => {
       );
 
       if (gamesWithoutImages.length === 0) {
-        alert("All games already have images!");
+        if (onShowToast) {
+          onShowToast("All games already have images!");
+        }
         setIsUpdatingImages(false);
         return;
       }
@@ -358,14 +386,26 @@ export const useGameManagement = (userId) => {
       }
 
       if (updatedCount > 0) {
-        alert(`Successfully updated images for ${updatedCount} games!`);
+        if (onShowToast) {
+          onShowToast(`Successfully updated images for ${updatedCount} games!`);
+        }
         await fetchNotes(); // Refresh the games list
       } else {
-        alert("No images could be found for the games missing images.");
+        if (onShowToast) {
+          onShowToast(
+            "No images could be found for the games missing images.",
+            "error"
+          );
+        }
       }
     } catch (error) {
       console.error("Error updating missing images:", error);
-      alert("Failed to update missing images. Please try again.");
+      if (onShowToast) {
+        onShowToast(
+          "Failed to update missing images. Please try again.",
+          "error"
+        );
+      }
     } finally {
       setIsUpdatingImages(false);
     }
@@ -388,7 +428,12 @@ export const useGameManagement = (userId) => {
       setNotes(notes.map((n) => (n.id === note.id ? updatedGame : n)));
     } catch (error) {
       console.error("Error toggling wishlist:", error);
-      alert("Failed to update wishlist status. Please try again.");
+      if (onShowToast) {
+        onShowToast(
+          "Failed to update wishlist status. Please try again.",
+          "error"
+        );
+      }
     }
   };
 

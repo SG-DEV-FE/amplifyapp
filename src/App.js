@@ -18,6 +18,43 @@ import GameModal from "./components/GameModal";
 import GamingPlatformLogos from "./components/GamingPlatformLogos";
 import { useGameManagement } from "./hooks/useGameManagement";
 
+// Toast notification component
+const Toast = ({ message, type = "success", onClose, isVisible }) => {
+  if (!isVisible) return null;
+
+  const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
+
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-fade-in">
+      <div
+        className={`${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 max-w-sm`}
+      >
+        <div className="flex-1">
+          <p className="text-sm font-medium">{message}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-white hover:text-gray-200 focus:outline-none"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 library.add(
   faPlusSquare,
   faChevronDown,
@@ -36,6 +73,24 @@ function GameLibraryApp() {
   const [editingNote, setEditingNote] = useState(null);
   const [showManualForm, setShowManualForm] = useState(false);
 
+  // Toast notification helper
+  const [toast, setToast] = useState({
+    message: "",
+    type: "success",
+    isVisible: false,
+  });
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type, isVisible: true });
+    setTimeout(() => {
+      setToast({ message: "", type: "success", isVisible: false });
+    }, 4000); // Auto-hide after 4 seconds
+  };
+
+  const hideToast = () => {
+    setToast({ message: "", type: "success", isVisible: false });
+  };
+
   // Use the game management hook
   const {
     notes,
@@ -48,7 +103,7 @@ function GameLibraryApp() {
     updateNote,
     updateMissingImages,
     toggleWishlist,
-  } = useGameManagement(user.id);
+  } = useGameManagement(user.id, showToast);
 
   useEffect(() => {
     fetchNotes();
@@ -194,6 +249,14 @@ function GameLibraryApp() {
           />
         </div>
       </main>
+
+      {/* Toast Notification */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+        isVisible={toast.isVisible}
+      />
     </>
   );
 }
