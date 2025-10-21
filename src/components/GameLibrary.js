@@ -20,34 +20,41 @@ const GameCard = ({ note, onViewInfo, onEdit, onDelete, isDeletingGame }) => {
 
   return (
     <div className="w-screen md:w-64 rounded mx-auto py-5">
-      {note.image ? (
-        <img
-          src={note.image}
-          alt={note.name}
-          className="w-screen md:w-64 h-64 object-cover rounded"
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-        />
-      ) : (
-        <div className="w-screen md:w-64 h-64 bg-gray-300 rounded flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400 mb-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <p className="text-xs">No Image</p>
+      <div className="relative">
+        {note.image ? (
+          <img
+            src={note.image}
+            alt={note.name}
+            className="w-screen md:w-64 h-64 object-cover rounded"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+          />
+        ) : (
+          <div className="w-screen md:w-64 h-64 bg-gray-300 rounded flex items-center justify-center">
+            <div className="text-center text-gray-500">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400 mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <p className="text-xs">No Image</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        {note.selectedPlatform && (
+          <div className="absolute bottom-2 left-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
+            {note.selectedPlatform.name}
+          </div>
+        )}
+      </div>
 
       <h2 className="py-3 text-white">{note.name}</h2>
 
@@ -123,12 +130,15 @@ const GameLibrary = ({
     return platforms.sort((a, b) => a.name.localeCompare(b.name));
   }, [notes]);
 
-  // Filter games based on selected platform
+  // Filter and sort games based on selected platform
   const filteredNotes = useMemo(() => {
+    // Sort notes alphabetically by name
+    const sortedNotes = [...notes].sort((a, b) => a.name.localeCompare(b.name));
+
     if (selectedPlatform === "all") {
-      return notes;
+      return sortedNotes;
     }
-    return notes.filter(
+    return sortedNotes.filter(
       (note) =>
         note.selectedPlatform &&
         note.selectedPlatform.id === parseInt(selectedPlatform)
