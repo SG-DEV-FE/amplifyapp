@@ -123,6 +123,18 @@ export const useGameManagement = (
 
       console.log("✅ Game inserted successfully:", insertedGame);
 
+      // Immediately add the game to the local state with proper image handling
+      const newGame = {
+        ...insertedGame,
+        image: game.background_image || insertedGame.image,
+        selectedPlatform: game.selectedPlatform || null,
+        isWishlisted: game.isWishlisted || false,
+      };
+
+      // Update local state immediately for instant feedback
+      setNotes((prevNotes) => [...prevNotes, newGame]);
+
+      // Also fetch to ensure sync with backend
       await fetchNotes();
 
       const platformText = game.selectedPlatform
@@ -148,7 +160,7 @@ export const useGameManagement = (
     if (!formData.name || !formData.description) return;
 
     try {
-      await fetchWithAuth("/api/games", {
+      const insertedGame = await fetchWithAuth("/api/games", {
         method: "POST",
         body: JSON.stringify({
           name: formData.name,
@@ -164,7 +176,17 @@ export const useGameManagement = (
         }),
       });
 
+      console.log("✅ Manual game inserted successfully:", insertedGame);
+
+      // Update local state immediately for instant feedback
+      setNotes((prevNotes) => [...prevNotes, insertedGame]);
+
+      // Also fetch to ensure sync with backend
       await fetchNotes();
+
+      if (onShowToast) {
+        onShowToast(`"${formData.name}" added successfully!`);
+      }
     } catch (error) {
       console.error("Error creating note:", error);
       if (onShowToast) {
