@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { isMobile } from "react-device-detect";
 import psLogo from "../ps-logo.svg";
+import BarcodeScanner from "./BarcodeScanner";
 
 const RAWG_API_KEY = process.env.REACT_APP_RAWG_API_KEY || "";
 const RAWG_BASE_URL = "https://api.rawg.io/api";
@@ -21,6 +23,7 @@ const GameSearch = ({
   const [selectedGameForPlatforms, setSelectedGameForPlatforms] =
     useState(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   // Helper function to check if a game has been recently added
   const isGameRecentlyAdded = (gameId) => {
@@ -152,9 +155,19 @@ const GameSearch = ({
             {searchQuery && (
               <button
                 onClick={clearSearch}
-                className="text-gray-400 hover:text-gray-600 mr-4"
+                className="text-gray-400 hover:text-gray-600 mr-2"
               >
                 <FontAwesomeIcon icon="times" />
+              </button>
+            )}
+            {/* Barcode Scanner Button - Only show on mobile */}
+            {isMobile && (
+              <button
+                onClick={() => setShowBarcodeScanner(true)}
+                className="text-blue-500 hover:text-blue-700 mr-4 p-2"
+                title="Scan barcode"
+              >
+                <FontAwesomeIcon icon="barcode" className="text-lg" />
               </button>
             )}
           </div>
@@ -344,6 +357,18 @@ const GameSearch = ({
             </button>
           )}
         </div>
+
+        {/* Barcode Scanner Modal */}
+        {showBarcodeScanner && (
+          <BarcodeScanner
+            onGameFound={(game) => {
+              console.log("Game found from barcode:", game);
+              setShowBarcodeScanner(false);
+            }}
+            onClose={() => setShowBarcodeScanner(false)}
+            onGameAdd={onGameAdd}
+          />
+        )}
       </div>
     </div>
   );

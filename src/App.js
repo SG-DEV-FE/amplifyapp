@@ -6,6 +6,8 @@ import {
   faChevronDown,
   faSearch,
   faTimes,
+  faBarcode,
+  faCamera,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "./contexts/AuthContext";
 import Login from "./components/Login";
@@ -16,7 +18,14 @@ import GameModal from "./components/GameModal";
 import GamingPlatformLogos from "./components/GamingPlatformLogos";
 import { useGameManagement } from "./hooks/useGameManagement";
 
-library.add(faPlusSquare, faChevronDown, faSearch, faTimes);
+library.add(
+  faPlusSquare,
+  faChevronDown,
+  faSearch,
+  faTimes,
+  faBarcode,
+  faCamera
+);
 
 // Main Game Library Component
 function GameLibraryApp() {
