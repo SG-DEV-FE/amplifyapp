@@ -26,18 +26,18 @@ const GameCard = ({
   };
 
   return (
-    <div className="w-screen md:w-64 rounded mx-auto py-5">
+    <div className="w-full max-w-64 mx-auto py-5">
       <div className="relative">
         {note.image ? (
           <img
             src={note.image}
             alt={note.name}
-            className="w-screen md:w-64 h-64 object-cover rounded"
+            className="w-full h-64 object-cover rounded"
             onLoad={handleImageLoad}
             onError={handleImageError}
           />
         ) : (
-          <div className="w-screen md:w-64 h-64 bg-gray-300 rounded flex items-center justify-center">
+          <div className="w-full h-64 bg-gray-300 rounded flex items-center justify-center">
             <div className="text-center text-gray-500">
               <svg
                 className="mx-auto h-12 w-12 text-gray-400 mb-2"
@@ -212,12 +212,12 @@ const GameLibrary = ({
 
   return (
     <div className="bg-black">
-      <div className="container mx-auto">
-        {/* Platform Filter - Show if we have games and at least one has a selectedPlatform */}
-        {notes.length > 0 && availablePlatforms.length > 0 && (
-          <div className="px-4 py-6">
-            {/* Wishlist Filter */}
-            <div className="mb-4">
+      {/* Filters Section - Always at top and centered */}
+      {notes.length > 0 && availablePlatforms.length > 0 && (
+        <div className="w-full bg-black py-6 border-b border-gray-800">
+          <div className="container mx-auto px-4">
+            {/* Wishlist Filter - Centered */}
+            <div className="flex justify-center mb-6">
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -239,21 +239,54 @@ const GameLibrary = ({
               </label>
             </div>
 
-            {/* Mobile Dropdown Filter */}
-            <div className="block md:hidden mb-4">
-              <label
-                htmlFor="platform-select"
-                className="block text-white text-sm font-medium mb-2"
-              >
+            {/* Mobile Dropdown Filter - Centered */}
+            <div className="block md:hidden">
+              <div className="max-w-sm mx-auto">
+                <label
+                  htmlFor="platform-select"
+                  className="block text-white text-sm font-medium mb-2 text-center"
+                >
+                  Filter by Platform:
+                </label>
+                <select
+                  id="platform-select"
+                  value={selectedPlatform}
+                  onChange={(e) => setSelectedPlatform(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Platforms ({notes.length})</option>
+                  {availablePlatforms.map((platform) => {
+                    const count = notes.filter(
+                      (note) =>
+                        note.selectedPlatform &&
+                        note.selectedPlatform.id === platform.id
+                    ).length;
+                    return (
+                      <option key={platform.id} value={platform.id.toString()}>
+                        {platform.name} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+
+            {/* Desktop Button Filter - Centered */}
+            <div className="hidden md:flex flex-col items-center">
+              <span className="text-white text-sm font-medium mb-3">
                 Filter by Platform:
-              </label>
-              <select
-                id="platform-select"
-                value={selectedPlatform}
-                onChange={(e) => setSelectedPlatform(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">All Platforms ({notes.length})</option>
+              </span>
+              <div className="flex flex-wrap justify-center gap-2">
+                <button
+                  onClick={() => setSelectedPlatform("all")}
+                  className={`px-4 py-2 text-sm rounded-full transition-colors ${
+                    selectedPlatform === "all"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  All Platforms ({notes.length})
+                </button>
                 {availablePlatforms.map((platform) => {
                   const count = notes.filter(
                     (note) =>
@@ -261,54 +294,29 @@ const GameLibrary = ({
                       note.selectedPlatform.id === platform.id
                   ).length;
                   return (
-                    <option key={platform.id} value={platform.id.toString()}>
+                    <button
+                      key={platform.id}
+                      onClick={() =>
+                        setSelectedPlatform(platform.id.toString())
+                      }
+                      className={`px-4 py-2 text-sm rounded-full transition-colors ${
+                        selectedPlatform === platform.id.toString()
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      }`}
+                    >
                       {platform.name} ({count})
-                    </option>
+                    </button>
                   );
                 })}
-              </select>
-            </div>
-
-            {/* Desktop Button Filter */}
-            <div className="hidden md:flex flex-wrap items-center justify-center gap-2">
-              <span className="text-white text-sm font-medium mr-3">
-                Filter by Platform:
-              </span>
-              <button
-                onClick={() => setSelectedPlatform("all")}
-                className={`px-4 py-2 text-sm rounded-full transition-colors ${
-                  selectedPlatform === "all"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                All Platforms ({notes.length})
-              </button>
-              {availablePlatforms.map((platform) => {
-                const count = notes.filter(
-                  (note) =>
-                    note.selectedPlatform &&
-                    note.selectedPlatform.id === platform.id
-                ).length;
-                return (
-                  <button
-                    key={platform.id}
-                    onClick={() => setSelectedPlatform(platform.id.toString())}
-                    className={`px-4 py-2 text-sm rounded-full transition-colors ${
-                      selectedPlatform === platform.id.toString()
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    {platform.name} ({count})
-                  </button>
-                );
-              })}
+              </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Games Grid */}
+      {/* Games Grid Section */}
+      <div className="container mx-auto px-4 py-8">
         {filteredNotes.length === 0 ? (
           <div className="text-center text-white py-16">
             <svg
@@ -330,7 +338,7 @@ const GameLibrary = ({
             </p>
           </div>
         ) : (
-          <div className="bg-black grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:content-start md:justify-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center">
             {filteredNotes.map((note) => (
               <GameCard
                 key={`${note.id || note.name}-${
