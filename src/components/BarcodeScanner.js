@@ -125,8 +125,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     setIsProcessing(true);
     setScannedCode(decodedText);
 
-    // Stop scanning and show searching state
-    await stopScanning();
+    // Don't stop scanner yet - let it keep running in case this barcode doesn't work
     setSearchingGame(true);
 
     try {
@@ -136,6 +135,9 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
         const rawgGame = await searchRAWGByName(gameInfo.name);
 
         if (rawgGame) {
+          // Success! Now we can stop scanning
+          await stopScanning();
+
           const gameWithWishlist = {
             ...rawgGame,
             isWishlisted: addToWishlist,
@@ -147,6 +149,8 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           // Close modal after successful add
           setTimeout(() => onClose(), 1000);
         } else {
+          // Game name found but not in RAWG - stop and show error
+          await stopScanning();
           setError(
             `Game "${gameInfo.name}" not found in RAWG database. Try manual search.`
           );
@@ -154,6 +158,8 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           setIsProcessing(false);
         }
       } else {
+        // Barcode not recognized as game - stop and show error
+        await stopScanning();
         setError(
           "Product not found or not a game. Try scanning another barcode."
         );
@@ -162,6 +168,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       }
     } catch (err) {
       console.error("Error processing barcode:", err);
+      await stopScanning();
       setError("Failed to process barcode. Please try again.");
       setSearchingGame(false);
       setIsProcessing(false);
@@ -356,6 +363,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
                   </svg>
                 </label>
               </div>
+
               {scannedCode && (
                 <p className="text-sm text-gray-500 mb-2">
                   Last scanned: {scannedCode}
