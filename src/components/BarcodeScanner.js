@@ -23,90 +23,117 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
 
   const searchGameByBarcode = async (barcode) => {
     console.log("🔍 Searching for barcode:", barcode);
-
     try {
-      // Try UPC database first
-      const response = await fetch(
-        `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`
-      );
+      // Build barcode variants to handle EAN-13 vs UPC-A, partial reads, etc.
+      const cleaned = (barcode || "").replace(/\D+/g, "");
+      const variants = [cleaned];
+      if (cleaned.length === 13) {
+        // EAN-13 may correspond to UPC-A by dropping the leading country digit
+        variants.push(cleaned.slice(1));
+      }
+      if (cleaned.length === 12) {
+        // UPC-A sometimes represented as EAN-13 with leading 0
+        variants.push("0" + cleaned);
+      }
+      if (cleaned.length > 8) {
+        // add last 8 in case of short/ean-8 style reads
+        variants.push(cleaned.slice(-8));
+      }
+      // include original barcode string too if it contained formatting
+      if (!variants.includes(barcode)) variants.push(barcode);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("📦 UPC Database response:", data);
+      // dedupe and filter
+      const uniqVariants = [...new Set(variants)].filter(Boolean);
+      console.log("🔁 Barcode variants to try:", uniqVariants);
 
-        if (data.code === "OK" && data.items && data.items.length > 0) {
-          const item = data.items[0];
-
-          // Build a cleaned title (remove platform parentheses etc.)
-          const cleanTitle = (item.title || "")
-            .replace(/\s*\([^)]*\)\s*/g, " ")
-            .trim();
-
-          const gameKeywords = [
-            "video game",
-            "game",
-            "gaming",
-            "playstation",
-            "xbox",
-            "nintendo",
-            "pc game",
-            "software",
-            "ps4",
-            "ps5",
-            "switch",
-          ];
-
-          const isGame = gameKeywords.some((keyword) =>
-            (item.title || "").toLowerCase().includes(keyword)
+      // Try UPC DB for each variant
+      for (const v of uniqVariants) {
+        try {
+          const resp = await fetch(
+            `https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(
+              v
+            )}`
           );
-
-          if (item.title) {
-            if (isGame) {
-              console.log(
-                "✅ Game found in UPC DB:",
-                cleanTitle,
-                "| Original:",
-                item.title
-              );
-            } else {
-              console.log(
-                "⚠️ Product found but may not be a game:",
-                cleanTitle
-              );
-            }
-
+          if (!resp.ok) {
+            console.log(`❌ UPC DB responded ${resp.status} for variant ${v}`);
+            continue;
+          }
+          const data = await resp.json();
+          console.log("📦 UPC DB response for", v, data && data.code);
+          if (
+            data &&
+            data.code === "OK" &&
+            data.items &&
+            data.items.length > 0
+          ) {
+            const item = data.items[0];
+            const cleanTitle = (item.title || "")
+              .replace(/\s*\([^)]*\)\s*/g, " ")
+              .trim();
+            const gameKeywords = [
+              "video game",
+              "game",
+              "gaming",
+              "playstation",
+              "xbox",
+              "nintendo",
+              "pc game",
+              "software",
+              "ps4",
+              "ps5",
+              "switch",
+            ];
+            const isGame = gameKeywords.some((k) =>
+              (item.title || "").toLowerCase().includes(k)
+            );
+            console.log(`✅ UPC DB match for variant ${v}:`, cleanTitle);
             return {
               name: cleanTitle,
               originalName: item.title,
-              barcode,
+              barcode: v,
               isGame,
+              variantUsed: v,
             };
           }
-        } else {
-          console.log("❌ UPC Database: No items found or invalid response");
-        }
-      } else {
-        console.log("❌ UPC Database API error:", response.status);
-      }
-
-      // If UPC lookup fails, try searching RAWG directly with the barcode
-      // Some games might be searchable by UPC in RAWG
-      console.log("🎮 Trying RAWG direct search with barcode...");
-      const rawgResponse = await fetch(
-        `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-          barcode
-        )}&page_size=5`
-      );
-
-      if (rawgResponse.ok) {
-        const data = await rawgResponse.json();
-        if (data.results && data.results.length > 0) {
-          console.log("✅ Found in RAWG by barcode:", data.results[0].name);
-          return { name: data.results[0].name, barcode, rawgDirect: true };
+        } catch (e) {
+          console.error("UPC DB lookup error for variant", v, e);
         }
       }
 
-      console.log("❌ No game found for barcode:", barcode);
+      // Try RAWG direct search for barcode variants
+      console.log("🎮 Trying RAWG direct search with barcode variants...");
+      for (const v of uniqVariants) {
+        try {
+          const rawgResp = await fetch(
+            `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
+              v
+            )}&page_size=5`
+          );
+          if (!rawgResp.ok) {
+            console.log(
+              `❌ RAWG responded ${rawgResp.status} for variant ${v}`
+            );
+            continue;
+          }
+          const data = await rawgResp.json();
+          if (data && data.results && data.results.length > 0) {
+            console.log(
+              `✅ Found in RAWG by variant ${v}:`,
+              data.results[0].name
+            );
+            return {
+              name: data.results[0].name,
+              barcode: v,
+              rawgDirect: true,
+              variantUsed: v,
+            };
+          }
+        } catch (e) {
+          console.error("RAWG lookup error for variant", v, e);
+        }
+      }
+
+      console.log("❌ No game found for barcode (all variants):", uniqVariants);
       return null;
     } catch (error) {
       console.error("Barcode search error:", error);
