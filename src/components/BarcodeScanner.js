@@ -14,6 +14,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   const [addToWishlist, setAddToWishlist] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const scannerRef = useRef(null);
+  const lastScannedRef = useRef({ code: null, ts: 0 });
 
   const searchGameByBarcode = async (barcode) => {
     console.log("🔍 Searching for barcode:", barcode);
@@ -30,6 +31,12 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
 
         if (data.code === "OK" && data.items && data.items.length > 0) {
           const item = data.items[0];
+
+          // Build a cleaned title (remove platform parentheses etc.)
+          const cleanTitle = (item.title || "")
+            .replace(/\s*\([^)]*\)\s*/g, " ")
+            .trim();
+
           const gameKeywords = [
             "video game",
             "game",
@@ -44,20 +51,11 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
             "switch",
           ];
 
-          // Check if it's likely a game product
-          const isGame = gameKeywords.some(
-            (keyword) =>
-              (item.title || "").toLowerCase().includes(keyword) ||
-              (item.category || "").toLowerCase().includes(keyword) ||
-              (item.brand || "").toLowerCase().includes(keyword)
+          const isGame = gameKeywords.some((keyword) =>
+            (item.title || "").toLowerCase().includes(keyword)
           );
 
           if (item.title) {
-            // Clean up the title - remove platform info in parentheses for better RAWG search
-            const cleanTitle = item.title
-              .replace(/\s*\([^)]*\)\s*/g, " ")
-              .trim();
-
             if (isGame) {
               console.log(
                 "✅ Game found in UPC DB:",
@@ -147,6 +145,17 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       return;
     }
 
+    // Debounce duplicate scans for same barcode (ignore repeats within 5s)
+    const now = Date.now();
+    if (
+      lastScannedRef.current.code === code &&
+      now - lastScannedRef.current.ts < 5000
+    ) {
+      console.log("🔁 Duplicate scan ignored for:", code);
+      return;
+    }
+    lastScannedRef.current = { code, ts: now };
+
     console.log("✅ Valid barcode detected:", code, "Length:", code.length);
     setIsProcessing(true);
     setScannedCode(code);
@@ -158,29 +167,50 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     try {
       const gameInfo = await searchGameByBarcode(code);
 
-      if (gameInfo) {
-        const rawgGame = await searchRAWGByName(gameInfo.name);
-
-        if (rawgGame) {
-          const gameWithWishlist = {
-            ...rawgGame,
-            isWishlisted: addToWishlist,
-          };
-          onGameFound(gameWithWishlist);
-          if (onGameAdd) {
-            await onGameAdd(gameWithWishlist);
-          }
-          setTimeout(() => onClose(), 1000);
-        } else {
-          setError(
-            `Found "${gameInfo.name}" from barcode but couldn't locate it in our game database. Please use the manual search function above to find and add your game.`
-          );
-          setSearchingGame(false);
-          setIsProcessing(false);
-        }
-      } else {
+      if (!gameInfo) {
         setError(
-          `Barcode ${code} not found in our video game databases. Unfortunately, not all game barcodes are indexed. Please use the manual search function above to find and add your game.`
+          `Barcode ${code} not found in our video game databases. Please use the manual search function above to find and add your game.`
+        );
+        setSearchingGame(false);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Try multiple name variants against RAWG: cleaned name, original title
+      const candidates = [];
+      if (gameInfo.name) candidates.push(gameInfo.name);
+      if (gameInfo.originalName && gameInfo.originalName !== gameInfo.name)
+        candidates.push(gameInfo.originalName);
+
+      // Ensure uniqueness and simple cleanup of whitespace
+      const uniqCandidates = [
+        ...new Set(candidates.map((c) => (c || "").trim())),
+      ].filter(Boolean);
+
+      let rawgGame = null;
+      for (const candidate of uniqCandidates) {
+        console.log("🔎 RAWG search attempt for:", candidate);
+        rawgGame = await searchRAWGByName(candidate);
+        if (rawgGame) {
+          console.log(
+            "✅ RAWG match for candidate:",
+            candidate,
+            "->",
+            rawgGame.name
+          );
+          break;
+        }
+      }
+
+      if (rawgGame) {
+        const gameWithWishlist = { ...rawgGame, isWishlisted: addToWishlist };
+        onGameFound(gameWithWishlist);
+        if (onGameAdd) await onGameAdd(gameWithWishlist);
+        setTimeout(() => onClose(), 1000);
+      } else {
+        console.log("❌ No RAWG match for any candidate:", uniqCandidates);
+        setError(
+          `Found "${gameInfo.name}" from barcode but couldn't locate it in our game database. Please use the manual search to find and add your game.`
         );
         setSearchingGame(false);
         setIsProcessing(false);
