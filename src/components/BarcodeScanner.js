@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
+import React, { useState, useEffect } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import { isMobile } from "react-device-detect";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -12,350 +12,193 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   const [searchingGame, setSearchingGame] = useState(false);
   const [scannedCode, setScannedCode] = useState("");
   const [addToWishlist, setAddToWishlist] = useState(false);
-  const [debugInfo, setDebugInfo] = useState("");
-  const [cameraReady, setCameraReady] = useState(false);
-  const videoRef = useRef(null);
-  const codeReaderRef = useRef(null);
+  const [scanner, setScanner] = useState(null);
 
-  const stopScanning = useCallback(() => {
-    if (codeReaderRef.current) {
-      codeReaderRef.current.reset();
-      codeReaderRef.current = null;
-    }
-    setCameraReady(false);
-  }, []);
+  // Cleanup scanner on unmount
+  useEffect(() => {
+    return () => {
+      if (scanner) {
+        scanner.stop().catch(err => console.log("Scanner already stopped:", err));
+      }
+    };
+  }, [scanner]);
 
-  const fallbackBarcodeSearch = useCallback(async (barcode) => {
+  const searchGameByBarcode = async (barcode) => {
     try {
-      // Try searching RAWG directly with the barcode as a query
-      // Some games might have their UPC in the description or metadata
+      // Try UPCitemdb.com
       const response = await fetch(
-        `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-          barcode
-        )}&page_size=5`
+        `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`
       );
 
       if (response.ok) {
         const data = await response.json();
+        if (data.code === "OK" && data.items && data.items.length > 0) {
+          const item = data.items[0];
+          const gameKeywords = [
+            "video game", "game", "gaming", "playstation", "xbox", "nintendo",
+            "pc game", "software", "ps4", "ps5", "switch"
+          ];
+
+          const isGame = gameKeywords.some(keyword =>
+            (item.title || "").toLowerCase().includes(keyword) ||
+            (item.category || "").toLowerCase().includes(keyword) ||
+            (item.brand || "").toLowerCase().includes(keyword)
+          );
+
+          if (item.title && isGame) {
+            return { name: item.title, barcode };
+          }
+        }
+      }
+
+      // Fallback: Try RAWG directly
+      const rawgResponse = await fetch(
+        `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(barcode)}&page_size=5`
+      );
+
+      if (rawgResponse.ok) {
+        const data = await rawgResponse.json();
         if (data.results && data.results.length > 0) {
-          // Return the first result if found
-          return {
-            name: data.results[0].name,
-            barcode: barcode,
-            rawgDirect: true,
-          };
+          return { name: data.results[0].name, barcode, rawgDirect: true };
         }
       }
 
       return null;
     } catch (error) {
-      console.error("Fallback barcode search error:", error);
+      console.error("Barcode search error:", error);
       return null;
     }
-  }, []);
+  };
 
-  const searchGameByBarcode = useCallback(
-    async (barcode) => {
-      try {
-        // First try UPCitemdb.com (free tier: 100 requests/day)
-        let response = await fetch(
-          `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-
-          if (data.code === "OK" && data.items && data.items.length > 0) {
-            const item = data.items[0];
-            const productName = item.title;
-            const brand = item.brand;
-            const category = item.category;
-
-            // Check if it's likely a game based on category, brand, or title
-            const gameKeywords = [
-              "video game",
-              "game",
-              "gaming",
-              "playstation",
-              "xbox",
-              "nintendo",
-              "pc game",
-              "software",
-              "entertainment",
-              "electronic",
-              "computer game",
-              "ps4",
-              "ps5",
-              "switch",
-              "xbox one",
-              "xbox series",
-              "pc",
-              "steam",
-            ];
-
-            const categoryLower = (category || "").toLowerCase();
-            const brandLower = (brand || "").toLowerCase();
-            const titleLower = (productName || "").toLowerCase();
-
-            const isLikelyGame =
-              gameKeywords.some(
-                (keyword) =>
-                  categoryLower.includes(keyword) ||
-                  brandLower.includes(keyword) ||
-                  titleLower.includes(keyword)
-              ) ||
-              categoryLower.includes("media") ||
-              categoryLower.includes("software");
-
-            if (productName && isLikelyGame) {
-              return {
-                name: productName,
-                barcode: barcode,
-                brand: brand,
-                category: category,
-                source: "upcitemdb",
-              };
-            }
-          }
-        }
-
-        // Fallback: Try direct RAWG search with barcode
-        return await fallbackBarcodeSearch(barcode);
-      } catch (error) {
-        console.error("Barcode search error:", error);
-        // Try fallback on any error
-        return await fallbackBarcodeSearch(barcode);
-      }
-    },
-    [fallbackBarcodeSearch]
-  );
-
-  const searchRAWGByName = useCallback(async (gameName) => {
+  const searchRAWGByName = async (gameName) => {
     try {
       const response = await fetch(
-        `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-          gameName
-        )}&page_size=5`
+        `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(gameName)}&page_size=5`
       );
 
-      if (!response.ok) {
-        throw new Error("RAWG search failed");
-      }
+      if (!response.ok) return null;
 
       const data = await response.json();
-
       if (data.results && data.results.length > 0) {
-        // Try to find exact match first
         const exactMatch = data.results.find(
-          (game) => game.name.toLowerCase() === gameName.toLowerCase()
+          game => game.name.toLowerCase() === gameName.toLowerCase()
         );
-
         return exactMatch || data.results[0];
       }
-
       return null;
     } catch (error) {
       console.error("RAWG search error:", error);
       return null;
     }
-  }, []);
+  };
 
-  const handleBarcodeResult = useCallback(
-    async (barcode) => {
-      setIsScanning(false);
-      setSearchingGame(true);
-      stopScanning();
-
-      try {
-        // First, try to get game info from UPC database
-        const gameInfo = await searchGameByBarcode(barcode);
-
-        if (gameInfo) {
-          // Search RAWG API with the game name
-          const rawgGame = await searchRAWGByName(gameInfo.name);
-
-          if (rawgGame) {
-            const gameWithWishlist = {
-              ...rawgGame,
-              isWishlisted: addToWishlist,
-            };
-            onGameFound(gameWithWishlist);
-            // Automatically add the game
-            if (onGameAdd) {
-              await onGameAdd(gameWithWishlist);
-            }
-          } else {
-            setError(
-              `Game "${gameInfo.name}" not found in RAWG database. Try manual search.`
-            );
-          }
-        } else {
-          setError(
-            "Product not found or not a game. Try scanning another barcode."
-          );
-        }
-      } catch (err) {
-        console.error("Error processing barcode:", err);
-        setError("Failed to process barcode. Please try again.");
-      } finally {
-        setSearchingGame(false);
-      }
-    },
-    [
-      stopScanning,
-      searchGameByBarcode,
-      searchRAWGByName,
-      onGameFound,
-      onGameAdd,
-      addToWishlist,
-    ]
-  );
-
-  useEffect(() => {
-    const startScanningAsync = async () => {
-      try {
-        setError("");
-        setCameraReady(false);
-        setDebugInfo("Checking camera support...");
-
-        // Check if getUserMedia is supported
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error(
-            "Your browser doesn't support camera access. Please use a modern browser like Chrome or Safari."
-          );
-        }
-
-        setDebugInfo("Initializing barcode scanner...");
-
-        const codeReader = new BrowserMultiFormatReader();
-        codeReaderRef.current = codeReader;
-
-        // Get video devices
-        const videoInputDevices = await codeReader.listVideoInputDevices();
-        console.log("Available cameras:", videoInputDevices);
-
-        if (videoInputDevices.length === 0) {
-          throw new Error(
-            "No camera devices found. Please check your camera permissions."
-          );
-        }
-
-        // Use back camera if available (better for scanning)
-        let selectedDeviceId = videoInputDevices[0].deviceId;
-        const backCamera = videoInputDevices.find(
-          (device) =>
-            device.label.toLowerCase().includes("back") ||
-            device.label.toLowerCase().includes("rear") ||
-            device.label.toLowerCase().includes("environment")
-        );
-
-        if (backCamera) {
-          selectedDeviceId = backCamera.deviceId;
-          setDebugInfo(`Using back camera: ${backCamera.label}`);
-        } else {
-          setDebugInfo(
-            `Using camera: ${videoInputDevices[0].label || "Default"}`
-          );
-        }
-
-        console.log("📱 Starting camera with device:", selectedDeviceId);
-
-        // Ensure video element exists
-        if (!videoRef.current) {
-          throw new Error("Video element not found");
-        }
-
-        // Add event listeners to detect when video starts playing
-        const videoElement = videoRef.current;
-
-        const onVideoPlay = () => {
-          console.log("📱 Video is now playing");
-          setCameraReady(true);
-          setDebugInfo("Camera active - scanning for barcodes...");
-        };
-
-        const onVideoLoadedMetadata = () => {
-          console.log("📱 Video metadata loaded", {
-            width: videoElement.videoWidth,
-            height: videoElement.videoHeight,
-          });
-        };
-
-        const onVideoError = (e) => {
-          console.error("📱 Video error:", e);
-          setError("Video stream error. Please try again.");
-        };
-
-        videoElement.addEventListener("play", onVideoPlay);
-        videoElement.addEventListener("loadedmetadata", onVideoLoadedMetadata);
-        videoElement.addEventListener("error", onVideoError);
-
-        setDebugInfo("Starting camera stream...");
-
-        // Start scanning - use decodeFromVideoDevice for better reliability
-        try {
-          await codeReader.decodeFromVideoDevice(
-            selectedDeviceId,
-            videoElement,
-            (result, error) => {
-              if (result) {
-                const code = result.getText();
-                console.log("📱 Barcode scanned:", code);
-                setScannedCode(code);
-                handleBarcodeResult(code);
-              }
-              if (error && error.name !== "NotFoundException") {
-                // NotFoundException is normal - it just means no barcode in frame yet
-                console.error("Scanning error:", error);
-              }
-            }
-          );
-
-          console.log("📱 Camera started successfully");
-        } catch (cameraError) {
-          console.error("Camera start error:", cameraError);
-          if (cameraError.name === "NotAllowedError") {
-            throw new Error(
-              "Camera permission denied. Please enable camera access and try again."
-            );
-          } else if (cameraError.name === "NotFoundError") {
-            throw new Error("No camera found on this device.");
-          } else if (cameraError.name === "NotReadableError") {
-            throw new Error(
-              "Camera is being used by another app. Please close other apps and try again."
-            );
-          } else {
-            throw new Error(`Camera error: ${cameraError.message}`);
-          }
-        }
-
-        // Cleanup event listeners
-        return () => {
-          videoElement.removeEventListener("play", onVideoPlay);
-          videoElement.removeEventListener(
-            "loadedmetadata",
-            onVideoLoadedMetadata
-          );
-          videoElement.removeEventListener("error", onVideoError);
-        };
-      } catch (err) {
-        console.error("Failed to start scanning:", err);
-        setError(
-          err.message ||
-            "Failed to access camera. Please check your permissions."
-        );
-        setDebugInfo("");
-        setIsScanning(false);
-      }
-    };
-
-    if (isScanning) {
-      startScanningAsync();
+  const handleBarcodeDetected = async (decodedText) => {
+    console.log("📱 Barcode detected:", decodedText);
+    
+    // Stop scanning
+    if (scanner) {
+      await scanner.stop();
     }
-    return () => {
-      stopScanning();
-    };
-  }, [isScanning, handleBarcodeResult, stopScanning]);
+    
+    setIsScanning(false);
+    setSearchingGame(true);
+    setScannedCode(decodedText);
+
+    try {
+      const gameInfo = await searchGameByBarcode(decodedText);
+
+      if (gameInfo) {
+        const rawgGame = await searchRAWGByName(gameInfo.name);
+
+        if (rawgGame) {
+          const gameWithWishlist = {
+            ...rawgGame,
+            isWishlisted: addToWishlist,
+          };
+          onGameFound(gameWithWishlist);
+          if (onGameAdd) {
+            await onGameAdd(gameWithWishlist);
+          }
+          // Close modal after successful add
+          setTimeout(() => onClose(), 1000);
+        } else {
+          setError(`Game "${gameInfo.name}" not found in RAWG database. Try manual search.`);
+        }
+      } else {
+        setError("Product not found or not a game. Try scanning another barcode.");
+      }
+    } catch (err) {
+      console.error("Error processing barcode:", err);
+      setError("Failed to process barcode. Please try again.");
+    } finally {
+      setSearchingGame(false);
+    }
+  };
+
+  const startScanning = async () => {
+    try {
+      setError("");
+      setIsScanning(true);
+
+      const html5QrCode = new Html5Qrcode("barcode-reader");
+      setScanner(html5QrCode);
+
+      // Get cameras
+      const devices = await Html5Qrcode.getCameras();
+      
+      if (!devices || devices.length === 0) {
+        throw new Error("No cameras found. Please check camera permissions.");
+      }
+
+      // Find back camera (environment facing)
+      const backCamera = devices.find(device => 
+        device.label.toLowerCase().includes("back") ||
+        device.label.toLowerCase().includes("rear") ||
+        device.label.toLowerCase().includes("environment")
+      );
+
+      const cameraId = backCamera ? backCamera.id : devices[0].id;
+      console.log("📱 Using camera:", backCamera?.label || devices[0].label);
+
+      // Start scanning with proper config
+      await html5QrCode.start(
+        cameraId,
+        {
+          fps: 10, // Scans per second
+          qrbox: { width: 250, height: 150 }, // Scanning box size
+          aspectRatio: 1.7777778, // 16:9 aspect ratio
+        },
+        handleBarcodeDetected,
+        (errorMessage) => {
+          // Ignore "not found" errors - just means no barcode in frame
+          if (!errorMessage.includes("NotFoundException")) {
+            console.log("Scan error:", errorMessage);
+          }
+        }
+      );
+
+      console.log("📱 Scanner started successfully");
+    } catch (err) {
+      console.error("Failed to start scanner:", err);
+      setError(
+        err.message || "Failed to start camera. Please check permissions and try again."
+      );
+      setIsScanning(false);
+    }
+  };
+
+  const stopScanning = async () => {
+    try {
+      if (scanner) {
+        await scanner.stop();
+        setScanner(null);
+      }
+      setIsScanning(false);
+    } catch (err) {
+      console.log("Error stopping scanner:", err);
+      setIsScanning(false);
+    }
+  };
 
   // Don't show on desktop
   if (!isMobile) {
@@ -368,7 +211,10 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Scan Game Barcode</h3>
           <button
-            onClick={onClose}
+            onClick={async () => {
+              await stopScanning();
+              onClose();
+            }}
             className="text-gray-500 hover:text-gray-700"
           >
             <FontAwesomeIcon icon="times" />
@@ -383,17 +229,11 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
                 className="text-6xl text-blue-500 mb-4"
               />
               <p className="text-gray-600 mb-2">
-                Point your camera at a game's barcode to automatically add it to
-                your library.
+                Point your camera at a game's barcode to automatically add it to your library.
               </p>
               <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-gray-600">
-                <p className="font-semibold mb-1">
-                  📷 Camera Permission Required
-                </p>
-                <p>
-                  You'll be asked to allow camera access when you tap "Start
-                  Scanning"
-                </p>
+                <p className="font-semibold mb-1">📷 Camera Permission Required</p>
+                <p>You'll be asked to allow camera access when you tap "Start Scanning"</p>
               </div>
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
                 <label className="flex items-center cursor-pointer">
@@ -422,7 +262,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
               )}
             </div>
             <button
-              onClick={() => setIsScanning(true)}
+              onClick={startScanning}
               className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               Start Scanning
@@ -432,51 +272,15 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
 
         {isScanning && (
           <div className="text-center">
-            <div
-              className="relative bg-black rounded-lg overflow-hidden mb-4"
-              style={{ minHeight: "256px" }}
-            >
-              <video
-                ref={videoRef}
-                className="w-full h-64 object-cover"
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  transform: "scaleX(1)",
-                  backgroundColor: "#000",
-                  display: "block",
-                }}
-              />
-              {!cameraReady && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-2"></div>
-                    <p className="text-white text-sm">Starting camera...</p>
-                  </div>
-                </div>
-              )}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="border-2 border-red-500 w-48 h-32 rounded-lg opacity-75 shadow-lg"></div>
-              </div>
-              {debugInfo && (
-                <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-70 text-white text-xs p-2 rounded">
-                  {debugInfo}
-                </div>
-              )}
-            </div>
+            <div id="barcode-reader" className="rounded-lg overflow-hidden mb-4"></div>
             <p className="text-gray-600 mb-2">
-              Position the barcode within the red frame
+              Position the barcode in the scanning area
             </p>
             <p className="text-xs text-gray-500 mb-4">
               Hold steady and ensure good lighting
             </p>
             <button
-              onClick={() => {
-                setIsScanning(false);
-                setDebugInfo("");
-                stopScanning();
-              }}
+              onClick={stopScanning}
               className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
             >
               Stop Scanning
@@ -507,7 +311,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
         )}
 
         <div className="mt-4 text-xs text-gray-500 text-center">
-          <p>📱 Barcode scanner works best with good lighting</p>
+          <p>📱 Works best with good lighting</p>
           <p>🎮 Supports UPC/EAN codes on game packaging</p>
         </div>
       </div>
