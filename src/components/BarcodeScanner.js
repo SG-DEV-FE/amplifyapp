@@ -15,6 +15,11 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const scannerRef = useRef(null);
   const lastScannedRef = useRef({ code: null, ts: 0 });
+  const detectionBufferRef = useRef({
+    map: new Map(),
+    timer: null,
+    attempts: 0,
+  });
 
   const searchGameByBarcode = async (barcode) => {
     console.log("🔍 Searching for barcode:", barcode);
@@ -109,61 +114,8 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     }
   };
 
-  const searchRAWGByName = async (gameName) => {
-    try {
-      const response = await fetch(
-        `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-          gameName
-        )}&page_size=5`
-      );
-
-      if (!response.ok) return null;
-
-      const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        const exactMatch = data.results.find(
-          (game) => game.name.toLowerCase() === gameName.toLowerCase()
-        );
-        return exactMatch || data.results[0];
-      }
-      return null;
-    } catch (error) {
-      console.error("RAWG search error:", error);
-      return null;
-    }
-  };
-
-  const handleDetected = async (result) => {
-    if (isProcessing || !result || !result.codeResult) return;
-
-    const code = result.codeResult.code;
-
-    // Validate the barcode (should be numeric and reasonable length)
-    // Video game barcodes are typically 12-13 digits (UPC-A/EAN-13)
-    if (!code || !/^\d+$/.test(code) || code.length < 8 || code.length > 14) {
-      console.log("❌ Invalid barcode format:", code, "Length:", code?.length);
-      return;
-    }
-
-    // Debounce duplicate scans for same barcode (ignore repeats within 5s)
-    const now = Date.now();
-    if (
-      lastScannedRef.current.code === code &&
-      now - lastScannedRef.current.ts < 5000
-    ) {
-      console.log("🔁 Duplicate scan ignored for:", code);
-      return;
-    }
-    lastScannedRef.current = { code, ts: now };
-
-    console.log("✅ Valid barcode detected:", code, "Length:", code.length);
-    setIsProcessing(true);
-    setScannedCode(code);
-    setSearchingGame(true);
-
-    // Stop scanner
-    stopScanning();
-
+  // Helper to process a stable barcode: calls searchGameByBarcode and then RAWG name searches
+  const processBarcode = async (code) => {
     try {
       const gameInfo = await searchGameByBarcode(code);
 
@@ -222,6 +174,143 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       );
       setSearchingGame(false);
       setIsProcessing(false);
+    }
+  };
+
+  const searchRAWGByName = async (gameName) => {
+    try {
+      const response = await fetch(
+        `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
+          gameName
+        )}&page_size=5`
+      );
+
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        const exactMatch = data.results.find(
+          (game) => game.name.toLowerCase() === gameName.toLowerCase()
+        );
+        return exactMatch || data.results[0];
+      }
+      return null;
+    } catch (error) {
+      console.error("RAWG search error:", error);
+      return null;
+    }
+  };
+
+  const handleDetected = (result) => {
+    if (isProcessing || !result || !result.codeResult) return;
+
+    const code = result.codeResult.code;
+
+    // Basic validation: numeric and reasonable length
+    if (!code || !/^\d+$/.test(code) || code.length < 6 || code.length > 20) {
+      console.log("❌ Invalid barcode format:", code, "Length:", code?.length);
+      return;
+    }
+
+    const buf = detectionBufferRef.current;
+    const prev = buf.map.get(code) || 0;
+    buf.map.set(code, prev + 1);
+
+    // Immediate accept for typical full-length UPC/EAN
+    if (code.length >= 12) {
+      const now = Date.now();
+      if (
+        lastScannedRef.current.code === code &&
+        now - lastScannedRef.current.ts < 5000
+      ) {
+        console.log("🔁 Duplicate scan ignored for:", code);
+        return;
+      }
+      lastScannedRef.current = { code, ts: now };
+
+      // Clear buffer and any pending timer
+      if (buf.timer) {
+        clearTimeout(buf.timer);
+        buf.timer = null;
+      }
+      buf.map.clear();
+
+      console.log("✅ Stable barcode detected (full length):", code);
+      setIsProcessing(true);
+      setScannedCode(code);
+      setSearchingGame(true);
+
+      stopScanning();
+      // process asynchronously, don't await to avoid blocking Quagga handlers
+      processBarcode(code);
+      return;
+    }
+
+    // For shorter/partial reads, wait briefly to accumulate
+    if (!buf.timer) {
+      buf.timer = setTimeout(() => {
+        try {
+          let best = null;
+          for (const [c, count] of buf.map.entries()) {
+            if (!best) best = { code: c, count };
+            else if (c.length > best.code.length) best = { code: c, count };
+            else if (c.length === best.code.length && count > best.count)
+              best = { code: c, count };
+          }
+
+          buf.map.clear();
+          buf.timer = null;
+
+          if (!best) return;
+
+          const chosen = best.code;
+          const now = Date.now();
+          if (
+            lastScannedRef.current.code === chosen &&
+            now - lastScannedRef.current.ts < 5000
+          ) {
+            console.log("🔁 Duplicate (after buffer) ignored for:", chosen);
+            return;
+          }
+          lastScannedRef.current = { code: chosen, ts: now };
+
+          console.log("🟡 Buffered barcode chosen:", chosen);
+          setIsProcessing(true);
+          setScannedCode(chosen);
+          setSearchingGame(true);
+
+          // If the chosen code is short (<12), allow a few more attempts to collect a full-length code
+          if (chosen.length < 12 && (buf.attempts || 0) < 3) {
+            buf.attempts = (buf.attempts || 0) + 1;
+            console.log(
+              `🔁 Short code (${chosen.length}) — attempt ${buf.attempts}, continuing scan to improve accuracy`
+            );
+            // leave scanner running; set a new timer to re-evaluate after 1.5s
+            buf.timer = setTimeout(() => {
+              try {
+                // evaluation will run again by the same timer logic when detections accumulate
+                // simply return here; next detections will re-trigger buffer handler
+                buf.timer = null;
+              } catch (e) {
+                console.error("Error in retry timer:", e);
+              }
+            }, 1500);
+            // do not stop scanning yet
+            return;
+          }
+
+          // reset attempts after we decide to process
+          buf.attempts = 0;
+
+          stopScanning();
+          processBarcode(chosen);
+        } catch (err) {
+          console.error("Error processing buffered barcode:", err);
+          setError(`Failed to process barcode. Please try again.`);
+          setSearchingGame(false);
+          setIsProcessing(false);
+        }
+      }, 700);
     }
   };
 
@@ -331,6 +420,18 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       setIsScanning(false);
       setIsProcessing(false);
       setSearchingGame(false);
+      // clear detection buffer
+      try {
+        const buf = detectionBufferRef.current;
+        if (buf.timer) {
+          clearTimeout(buf.timer);
+          buf.timer = null;
+        }
+        buf.map.clear();
+        buf.attempts = 0;
+      } catch (e) {
+        // ignore
+      }
     } catch (err) {
       setIsScanning(false);
       setIsProcessing(false);
