@@ -275,6 +275,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
 
     // For shorter/partial reads, wait briefly to accumulate
     if (!buf.timer) {
+      // longer collection window to build stable read
       buf.timer = setTimeout(() => {
         try {
           let best = null;
@@ -307,7 +308,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           setSearchingGame(true);
 
           // If the chosen code is short (<12), allow a few more attempts to collect a full-length code
-          if (chosen.length < 12 && (buf.attempts || 0) < 3) {
+          if (chosen.length < 12 && (buf.attempts || 0) < 5) {
             buf.attempts = (buf.attempts || 0) + 1;
             console.log(
               `🔁 Short code (${chosen.length}) — attempt ${buf.attempts}, continuing scan to improve accuracy`
@@ -337,7 +338,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           setSearchingGame(false);
           setIsProcessing(false);
         }
-      }, 700);
+      }, 1200);
     }
   };
 
@@ -589,6 +590,29 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
                   <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-green-400"></div>
                   <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-green-400"></div>
                 </div>
+              </div>
+            </div>
+            {/* Debug overlay showing recent detections */}
+            <div className="mt-2 text-left text-xs text-gray-400 bg-white bg-opacity-10 p-2 rounded">
+              <div className="font-semibold text-sm mb-1">
+                Debug: recent detections
+              </div>
+              <div style={{ maxHeight: 80, overflowY: "auto" }}>
+                {Array.from(detectionBufferRef.current.map.entries()).length ===
+                0 ? (
+                  <div className="text-xs text-gray-300">
+                    (no buffered detections yet)
+                  </div>
+                ) : (
+                  Array.from(detectionBufferRef.current.map.entries()).map(
+                    ([code, count]) => (
+                      <div key={code} className="flex justify-between">
+                        <div className="truncate">{code}</div>
+                        <div className="ml-2">{count}</div>
+                      </div>
+                    )
+                  )
+                )}
               </div>
             </div>
             <p className="text-gray-600 mb-2 font-medium">
