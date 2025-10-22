@@ -12,6 +12,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   const [searchingGame, setSearchingGame] = useState(false);
   const [scannedCode, setScannedCode] = useState("");
   const [addToWishlist, setAddToWishlist] = useState(false);
+  const [debugInfo, setDebugInfo] = useState("");
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
 
@@ -212,11 +213,65 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     const startScanningAsync = async () => {
       try {
         setError("");
+        setDebugInfo("Checking camera support...");
+
+        // Check if getUserMedia is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error(
+            "Your browser doesn't support camera access. Please use a modern browser like Chrome or Safari."
+          );
+        }
+
+        setDebugInfo("Requesting camera permission...");
+
+        // First, request camera permissions explicitly
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: "environment" }, // Prefer back camera
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+
+          setDebugInfo(
+            `Camera permission granted. Found ${
+              stream.getVideoTracks().length
+            } video tracks.`
+          );
+
+          // Stop the test stream immediately
+          stream.getTracks().forEach((track) => {
+            console.log("Stopping test track:", track.label);
+            track.stop();
+          });
+        } catch (permError) {
+          console.error("Camera permission error:", permError);
+          if (
+            permError.name === "NotAllowedError" ||
+            permError.name === "PermissionDeniedError"
+          ) {
+            throw new Error(
+              "Camera permission denied. Please enable camera access in your browser settings."
+            );
+          } else if (permError.name === "NotFoundError") {
+            throw new Error("No camera found on this device.");
+          } else if (permError.name === "NotReadableError") {
+            throw new Error(
+              "Camera is being used by another application. Please close other apps using the camera."
+            );
+          } else {
+            throw new Error(`Camera access error: ${permError.message}`);
+          }
+        }
+
+        setDebugInfo("Initializing barcode scanner...");
         const codeReader = new BrowserMultiFormatReader();
         codeReaderRef.current = codeReader;
 
         // Get video devices
         const videoInputDevices = await codeReader.listVideoInputDevices();
+        console.log("Available cameras:", videoInputDevices);
 
         if (videoInputDevices.length === 0) {
           throw new Error("No camera devices found");
@@ -233,11 +288,29 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
 
         if (backCamera) {
           selectedDeviceId = backCamera.deviceId;
+          setDebugInfo(`Using back camera: ${backCamera.label}`);
+        } else {
+          setDebugInfo(
+            `Using camera: ${videoInputDevices[0].label || "Default"}`
+          );
         }
 
-        // Start scanning
-        await codeReader.decodeFromVideoDevice(
-          selectedDeviceId,
+        console.log("📱 Starting camera with device:", selectedDeviceId);
+
+        // Start scanning with constraints
+        const constraints = {
+          video: {
+            deviceId: selectedDeviceId
+              ? { exact: selectedDeviceId }
+              : undefined,
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        };
+
+        await codeReader.decodeFromConstraints(
+          constraints,
           videoRef.current,
           (result, error) => {
             if (result) {
@@ -251,9 +324,16 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
             }
           }
         );
+
+        setDebugInfo("Camera ready - point at barcode");
+        console.log("📱 Camera started successfully");
       } catch (err) {
         console.error("Failed to start scanning:", err);
-        setError(`Camera error: ${err.message}`);
+        setError(
+          err.message ||
+            "Failed to access camera. Please check your permissions."
+        );
+        setDebugInfo("");
         setIsScanning(false);
       }
     };
@@ -288,13 +368,22 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           <div className="text-center">
             <div className="mb-4">
               <FontAwesomeIcon
-                icon="search"
+                icon="camera"
                 className="text-6xl text-blue-500 mb-4"
               />
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-2">
                 Point your camera at a game's barcode to automatically add it to
                 your library.
               </p>
+              <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-gray-600">
+                <p className="font-semibold mb-1">
+                  📷 Camera Permission Required
+                </p>
+                <p>
+                  You'll be asked to allow camera access when you tap "Start
+                  Scanning"
+                </p>
+              </div>
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
                 <label className="flex items-center cursor-pointer">
                   <input
@@ -339,17 +428,25 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
                 autoPlay
                 playsInline
                 muted
+                style={{ transform: "scaleX(1)" }}
               />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="border-2 border-red-500 w-48 h-32 rounded-lg opacity-75"></div>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="border-2 border-red-500 w-48 h-32 rounded-lg opacity-75 shadow-lg"></div>
               </div>
             </div>
-            <p className="text-gray-600 mb-4">
+            {debugInfo && (
+              <p className="text-xs text-blue-600 mb-2">{debugInfo}</p>
+            )}
+            <p className="text-gray-600 mb-2">
               Position the barcode within the red frame
+            </p>
+            <p className="text-xs text-gray-500 mb-4">
+              Hold steady and ensure good lighting
             </p>
             <button
               onClick={() => {
                 setIsScanning(false);
+                setDebugInfo("");
                 stopScanning();
               }}
               className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
