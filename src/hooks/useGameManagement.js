@@ -23,12 +23,27 @@ const fetchWithAuth = async (url, options = {}) => {
     headers,
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Request failed");
+  // Read response as text first to avoid unhandled JSON parse errors
+  const text = await response.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      // Not JSON, preserve raw text
+      data = text;
+    }
   }
 
-  return response.json();
+  if (!response.ok) {
+    const errMsg =
+      (data && data.error) || data || response.statusText || "Request failed";
+    throw new Error(
+      typeof errMsg === "string" ? errMsg : JSON.stringify(errMsg)
+    );
+  }
+
+  return data;
 };
 
 export const useGameManagement = (
@@ -45,6 +60,7 @@ export const useGameManagement = (
   // Fetch user's personal library
   const fetchNotes = useCallback(async () => {
     try {
+      console.log("[useGameManagement] fetchNotes start");
       const games = await fetchWithAuth("/api/games");
 
       // Handle image URLs - check if it's a URL or a Netlify image
@@ -69,6 +85,9 @@ export const useGameManagement = (
       });
 
       setNotes(notesWithImages);
+      console.log(
+        `[useGameManagement] fetchNotes setNotes count=${notesWithImages.length}`
+      );
     } catch (error) {
       console.error("Error fetching notes:", error);
     }
@@ -130,11 +149,20 @@ export const useGameManagement = (
         resolve: resolveFn,
         reject: rejectFn,
       });
+      console.log(
+        `[useGameManagement] addGameFromSearch registered pending ${tempId} name=${tempNote.name}`
+      );
 
       setNotes((prev) => [...prev, tempNote]);
+      console.log(
+        `[useGameManagement] addGameFromSearch optimistic added ${tempId} name=${tempNote.name}`
+      );
 
       try {
         // Send create request
+        console.log(
+          `[useGameManagement] addGameFromSearch POST start ${tempId}`
+        );
         const createdGame = await fetchWithAuth("/api/games", {
           method: "POST",
           body: JSON.stringify(gameData),
@@ -155,10 +183,18 @@ export const useGameManagement = (
         setNotes((prev) =>
           prev.map((n) => (n.id === tempId ? createdNormalized : n))
         );
+        console.log(
+          `[useGameManagement] addGameFromSearch POST success ${tempId} -> realId=${createdNormalized.id}`
+        );
 
         // Resolve the pending create so any waiting updates (edits) can proceed
         const pending = pendingCreatesRef.current.get(tempId);
-        if (pending && pending.resolve) pending.resolve(createdNormalized);
+        if (pending && pending.resolve) {
+          pending.resolve(createdNormalized);
+          console.log(
+            `[useGameManagement] addGameFromSearch resolved pending ${tempId}`
+          );
+        }
         pendingCreatesRef.current.delete(tempId);
 
         // Background reconcile: ensure we eventually match server state
@@ -169,6 +205,9 @@ export const useGameManagement = (
       } catch (postErr) {
         // Remove temporary note on failure
         setNotes((prev) => prev.filter((n) => n.id !== tempId));
+        console.log(
+          `[useGameManagement] addGameFromSearch POST failed ${tempId} error=${postErr.message}`
+        );
         const pending = pendingCreatesRef.current.get(tempId);
         if (pending && pending.reject) pending.reject(postErr);
         pendingCreatesRef.current.delete(tempId);
@@ -242,10 +281,17 @@ export const useGameManagement = (
         resolve: resolveFn,
         reject: rejectFn,
       });
+      console.log(
+        `[useGameManagement] createNote registered pending ${tempId} name=${tempNote.name}`
+      );
 
       setNotes((prev) => [...prev, tempNote]);
+      console.log(
+        `[useGameManagement] createNote optimistic added ${tempId} name=${tempNote.name}`
+      );
 
       try {
+        console.log(`[useGameManagement] createNote POST start ${tempId}`);
         const created = await fetchWithAuth("/api/games", {
           method: "POST",
           body: JSON.stringify({
@@ -273,10 +319,18 @@ export const useGameManagement = (
         setNotes((prev) =>
           prev.map((n) => (n.id === tempId ? createdNote : n))
         );
+        console.log(
+          `[useGameManagement] createNote POST success ${tempId} -> realId=${createdNote.id}`
+        );
 
         // Resolve the pending create so any waiting edits can proceed
         const pending = pendingCreatesRef.current.get(tempId);
-        if (pending && pending.resolve) pending.resolve(createdNote);
+        if (pending && pending.resolve) {
+          pending.resolve(createdNote);
+          console.log(
+            `[useGameManagement] createNote resolved pending ${tempId}`
+          );
+        }
         pendingCreatesRef.current.delete(tempId);
 
         // Background reconcile
@@ -286,6 +340,9 @@ export const useGameManagement = (
       } catch (postErr) {
         // Remove optimistic item and show error
         setNotes((prev) => prev.filter((n) => n.id !== tempId));
+        console.log(
+          `[useGameManagement] createNote POST failed ${tempId} error=${postErr.message}`
+        );
         const pending = pendingCreatesRef.current.get(tempId);
         if (pending && pending.reject) pending.reject(postErr);
         pendingCreatesRef.current.delete(tempId);
@@ -385,22 +442,39 @@ export const useGameManagement = (
       // If this note is an optimistic temp item, wait for the server to return the real item
       let noteToUpdate = editingNote;
       if (editingNote.id && String(editingNote.id).startsWith("tmp-")) {
+        console.log(
+          `[useGameManagement] updateNote waiting for pending create ${editingNote.id}`
+        );
         const pending = pendingCreatesRef.current.get(editingNote.id);
         if (pending && pending.promise) {
           try {
             const resolved = await pending.promise;
             noteToUpdate = resolved;
+            console.log(
+              `[useGameManagement] updateNote pending resolved ${editingNote.id} -> ${noteToUpdate.id}`
+            );
           } catch (err) {
             // If the create failed, abort update
             if (onShowToast)
               onShowToast("Cannot edit: original create failed.", "error");
+            console.log(
+              `[useGameManagement] updateNote pending rejected ${editingNote.id} error=${err.message}`
+            );
             return;
           }
         } else {
           // No pending create found - attempt to fetch latest list and find item
+          console.log(
+            `[useGameManagement] updateNote no pending found for ${editingNote.id}, fetching notes`
+          );
           await fetchNotes();
           const found = notes.find((n) => n.id === editingNote.id);
-          if (found) noteToUpdate = found;
+          if (found) {
+            noteToUpdate = found;
+            console.log(
+              `[useGameManagement] updateNote found note after fetch ${found.id}`
+            );
+          }
         }
       }
 
@@ -437,10 +511,16 @@ export const useGameManagement = (
         isWishlisted: noteToUpdate.isWishlisted || false, // Preserve wishlist status
       };
 
+      console.log(
+        `[useGameManagement] updateNote PUT start id=${noteToUpdate.id}`
+      );
       await fetchWithAuth(`/api/games?id=${noteToUpdate.id}`, {
         method: "PUT",
         body: JSON.stringify(updateData),
       });
+      console.log(
+        `[useGameManagement] updateNote PUT success id=${noteToUpdate.id}`
+      );
 
       await fetchNotes();
     } catch (error) {
