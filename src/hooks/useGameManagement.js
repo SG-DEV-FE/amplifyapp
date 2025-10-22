@@ -101,23 +101,12 @@ export const useGameManagement = (
         gameData.image = game.background_image;
       }
 
-      const insertedGame = await fetchWithAuth("/api/games", {
+      await fetchWithAuth("/api/games", {
         method: "POST",
         body: JSON.stringify(gameData),
       });
 
-      // Immediately add the game to the local state with proper image handling
-      const newGame = {
-        ...insertedGame,
-        image: game.background_image || insertedGame.image,
-        selectedPlatform: game.selectedPlatform || null,
-        isWishlisted: game.isWishlisted || false,
-      };
-
-      // Update local state immediately for instant feedback
-      setNotes((prevNotes) => [...prevNotes, newGame]);
-
-      // Also fetch to ensure sync with backend
+      // Refresh the complete list from backend to ensure consistency
       await fetchNotes();
 
       const platformText = game.selectedPlatform
@@ -143,7 +132,7 @@ export const useGameManagement = (
     if (!formData.name || !formData.description) return;
 
     try {
-      const insertedGame = await fetchWithAuth("/api/games", {
+      await fetchWithAuth("/api/games", {
         method: "POST",
         body: JSON.stringify({
           name: formData.name,
@@ -159,10 +148,7 @@ export const useGameManagement = (
         }),
       });
 
-      // Update local state immediately for instant feedback
-      setNotes((prevNotes) => [...prevNotes, insertedGame]);
-
-      // Also fetch to ensure sync with backend
+      // Refresh the complete list from backend to ensure consistency
       await fetchNotes();
 
       if (onShowToast) {
