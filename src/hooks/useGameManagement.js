@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 const RAWG_API_KEY = process.env.REACT_APP_RAWG_API_KEY || "";
 const RAWG_BASE_URL = "https://api.rawg.io/api";
@@ -39,6 +39,8 @@ export const useGameManagement = (
   const [notes, setNotes] = useState([]);
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
   const [isDeletingGame, setIsDeletingGame] = useState(false);
+  // Map to track optimistic creates: tempId -> { promise, resolve, reject }
+  const pendingCreatesRef = useRef(new Map());
 
   // Fetch user's personal library
   const fetchNotes = useCallback(async () => {
@@ -116,6 +118,19 @@ export const useGameManagement = (
         )}`;
       }
 
+      // Create a promise that will resolve/reject when the server responds
+      let resolveFn;
+      let rejectFn;
+      const createdPromise = new Promise((res, rej) => {
+        resolveFn = res;
+        rejectFn = rej;
+      });
+      pendingCreatesRef.current.set(tempId, {
+        promise: createdPromise,
+        resolve: resolveFn,
+        reject: rejectFn,
+      });
+
       setNotes((prev) => [...prev, tempNote]);
 
       try {
@@ -141,6 +156,11 @@ export const useGameManagement = (
           prev.map((n) => (n.id === tempId ? createdNormalized : n))
         );
 
+        // Resolve the pending create so any waiting updates (edits) can proceed
+        const pending = pendingCreatesRef.current.get(tempId);
+        if (pending && pending.resolve) pending.resolve(createdNormalized);
+        pendingCreatesRef.current.delete(tempId);
+
         // Background reconcile: ensure we eventually match server state
         // Do not await so UI stays responsive
         fetchNotes().catch((e) =>
@@ -149,6 +169,10 @@ export const useGameManagement = (
       } catch (postErr) {
         // Remove temporary note on failure
         setNotes((prev) => prev.filter((n) => n.id !== tempId));
+        const pending = pendingCreatesRef.current.get(tempId);
+        if (pending && pending.reject) pending.reject(postErr);
+        pendingCreatesRef.current.delete(tempId);
+
         console.error("Error adding game from search (POST):", postErr);
         if (onShowToast) {
           onShowToast(
@@ -206,6 +230,19 @@ export const useGameManagement = (
         )}`;
       }
 
+      // Create a promise that will resolve/reject when the server responds
+      let resolveFn;
+      let rejectFn;
+      const createdPromise = new Promise((res, rej) => {
+        resolveFn = res;
+        rejectFn = rej;
+      });
+      pendingCreatesRef.current.set(tempId, {
+        promise: createdPromise,
+        resolve: resolveFn,
+        reject: rejectFn,
+      });
+
       setNotes((prev) => [...prev, tempNote]);
 
       try {
@@ -237,6 +274,11 @@ export const useGameManagement = (
           prev.map((n) => (n.id === tempId ? createdNote : n))
         );
 
+        // Resolve the pending create so any waiting edits can proceed
+        const pending = pendingCreatesRef.current.get(tempId);
+        if (pending && pending.resolve) pending.resolve(createdNote);
+        pendingCreatesRef.current.delete(tempId);
+
         // Background reconcile
         fetchNotes().catch((e) =>
           console.warn("Background fetchNotes failed:", e)
@@ -244,6 +286,10 @@ export const useGameManagement = (
       } catch (postErr) {
         // Remove optimistic item and show error
         setNotes((prev) => prev.filter((n) => n.id !== tempId));
+        const pending = pendingCreatesRef.current.get(tempId);
+        if (pending && pending.reject) pending.reject(postErr);
+        pendingCreatesRef.current.delete(tempId);
+
         console.error("Error creating note (POST):", postErr);
         if (onShowToast) {
           onShowToast("Failed to create game. Please try again.", "error");
@@ -336,15 +382,37 @@ export const useGameManagement = (
     if (!formData.name || !formData.description) return;
 
     try {
+      // If this note is an optimistic temp item, wait for the server to return the real item
+      let noteToUpdate = editingNote;
+      if (editingNote.id && String(editingNote.id).startsWith("tmp-")) {
+        const pending = pendingCreatesRef.current.get(editingNote.id);
+        if (pending && pending.promise) {
+          try {
+            const resolved = await pending.promise;
+            noteToUpdate = resolved;
+          } catch (err) {
+            // If the create failed, abort update
+            if (onShowToast)
+              onShowToast("Cannot edit: original create failed.", "error");
+            return;
+          }
+        } else {
+          // No pending create found - attempt to fetch latest list and find item
+          await fetchNotes();
+          const found = notes.find((n) => n.id === editingNote.id);
+          if (found) noteToUpdate = found;
+        }
+      }
+
       // If a new image was uploaded, delete the old one (only if it's a Netlify file)
       if (
         newImageUploaded &&
-        editingNote.image &&
-        !editingNote.image.startsWith("http")
+        noteToUpdate.image &&
+        !noteToUpdate.image.startsWith("http")
       ) {
         try {
           await fetchWithAuth(
-            `/api/images?file=${encodeURIComponent(editingNote.image)}`,
+            `/api/images?file=${encodeURIComponent(noteToUpdate.image)}`,
             {
               method: "DELETE",
             }
@@ -362,14 +430,14 @@ export const useGameManagement = (
         players: parseInt(formData.players) || null,
         publisher: formData.publisher,
         // Use new image if uploaded, otherwise keep original
-        image: newImageUploaded ? formData.image : editingNote.image,
+        image: newImageUploaded ? formData.image : noteToUpdate.image,
         // Update selectedPlatform from form data
         selectedPlatform: formData.selectedPlatform,
-        rawgId: editingNote.rawgId || null,
-        isWishlisted: editingNote.isWishlisted || false, // Preserve wishlist status
+        rawgId: noteToUpdate.rawgId || null,
+        isWishlisted: noteToUpdate.isWishlisted || false, // Preserve wishlist status
       };
 
-      await fetchWithAuth(`/api/games?id=${editingNote.id}`, {
+      await fetchWithAuth(`/api/games?id=${noteToUpdate.id}`, {
         method: "PUT",
         body: JSON.stringify(updateData),
       });
