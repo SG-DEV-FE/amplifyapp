@@ -146,49 +146,78 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     }
   };
 
-  const startScanning = () => {
+  const startScanning = async () => {
     setError("");
     setIsScanning(true);
 
-    Quagga.init(
-      {
-        inputStream: {
-          type: "LiveStream",
-          target: scannerRef.current,
-          constraints: {
-            facingMode: "environment",
-            width: { min: 640, ideal: 1280, max: 1920 },
-            height: { min: 480, ideal: 720, max: 1080 },
-          },
-        },
-        decoder: {
-          readers: [
-            "ean_reader", // EAN-13, EAN-8
-            "upc_reader", // UPC-A, UPC-E
-            "code_128_reader", // Code 128
-            "code_39_reader", // Code 39
-          ],
-          multiple: false,
-        },
-        locate: true,
-        locator: {
-          patchSize: "medium",
-          halfSample: true,
-        },
-        numOfWorkers: 2,
-        frequency: 10,
-      },
-      (err) => {
-        if (err) {
-          setError("Failed to start camera. Please check permissions.");
-          setIsScanning(false);
-          return;
-        }
-        Quagga.start();
-      }
-    );
+    // Ensure the scanner ref exists
+    if (!scannerRef.current) {
+      setError("Scanner element not ready. Please try again.");
+      setIsScanning(false);
+      return;
+    }
 
-    Quagga.onDetected(handleDetected);
+    try {
+      // Initialize Quagga with proper configuration
+      await new Promise((resolve, reject) => {
+        Quagga.init(
+          {
+            inputStream: {
+              type: "LiveStream",
+              target: scannerRef.current,
+              constraints: {
+                facingMode: "environment",
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 },
+              },
+              area: {
+                // Scanning area (percentage of video)
+                top: "20%",
+                right: "10%",
+                left: "10%",
+                bottom: "20%",
+              },
+            },
+            decoder: {
+              readers: [
+                "ean_reader", // EAN-13, EAN-8
+                "upc_reader", // UPC-A, UPC-E
+                "code_128_reader", // Code 128
+                "code_39_reader", // Code 39
+              ],
+              multiple: false,
+            },
+            locate: true,
+            locator: {
+              patchSize: "medium",
+              halfSample: true,
+            },
+            numOfWorkers: navigator.hardwareConcurrency || 2,
+            frequency: 10,
+          },
+          (err) => {
+            if (err) {
+              console.error("Quagga initialization error:", err);
+              reject(err);
+              return;
+            }
+            resolve();
+          }
+        );
+      });
+
+      // Start scanning after successful initialization
+      Quagga.start();
+
+      // Attach detection handler
+      Quagga.onDetected(handleDetected);
+    } catch (err) {
+      console.error("Failed to start scanner:", err);
+      setError(
+        "Failed to start camera. Please check camera permissions and try again."
+      );
+      setIsScanning(false);
+    }
   };
 
   const stopScanning = () => {
@@ -207,9 +236,14 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
 
   useEffect(() => {
     return () => {
-      if (isScanning) {
-        Quagga.stop();
+      // Cleanup on unmount
+      try {
+        if (isScanning) {
+          Quagga.stop();
+        }
         Quagga.offDetected(handleDetected);
+      } catch (err) {
+        // Already stopped
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -298,15 +332,35 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
             <div
               ref={scannerRef}
               id="barcode-scanner"
-              className="rounded-lg overflow-hidden mb-4"
+              className="rounded-lg overflow-hidden mb-4 relative"
               style={{
-                position: "relative",
                 width: "100%",
-                maxHeight: "300px",
+                height: "300px",
+                backgroundColor: "#000",
               }}
-            />
-            <p className="text-gray-600 mb-2">
-              Position the barcode in the scanning area
+            >
+              {/* Scanning overlay box */}
+              <div
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                style={{ zIndex: 1 }}
+              >
+                <div
+                  className="border-2 border-green-500"
+                  style={{
+                    width: "80%",
+                    height: "40%",
+                    boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.5)",
+                  }}
+                >
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-green-400"></div>
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-green-400"></div>
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-green-400"></div>
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-green-400"></div>
+                </div>
+              </div>
+            </div>
+            <p className="text-gray-600 mb-2 font-medium">
+              Position the barcode in the green scanning area
             </p>
             <p className="text-xs text-gray-500 mb-4">
               Hold steady and ensure good lighting
