@@ -173,14 +173,14 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           setTimeout(() => onClose(), 1000);
         } else {
           setError(
-            `Game "${gameInfo.name}" not found in RAWG database. Try manual search.`
+            `Found "${gameInfo.name}" from barcode but couldn't locate it in our game database. Please use the manual search function above to find and add your game.`
           );
           setSearchingGame(false);
           setIsProcessing(false);
         }
       } else {
         setError(
-          `Barcode ${code} not recognized as a video game. The product may not be in our database. Try manual search instead.`
+          `Barcode ${code} not found in our video game databases. Unfortunately, not all game barcodes are indexed. Please use the manual search function above to find and add your game.`
         );
         setSearchingGame(false);
         setIsProcessing(false);
