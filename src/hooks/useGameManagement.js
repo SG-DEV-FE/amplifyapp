@@ -101,13 +101,28 @@ export const useGameManagement = (
         gameData.image = game.background_image;
       }
 
-      await fetchWithAuth("/api/games", {
+      // Create the game on the backend and get the created object back
+      const createdGame = await fetchWithAuth("/api/games", {
         method: "POST",
         body: JSON.stringify(gameData),
       });
 
-      // Refresh the complete list from backend to ensure consistency
-      await fetchNotes();
+      // Immediately update local state with the created game so UI updates without a full refresh
+      const noteWithImage = { ...createdGame };
+      if (noteWithImage.image) {
+        if (
+          noteWithImage.image.startsWith("http://") ||
+          noteWithImage.image.startsWith("https://")
+        ) {
+          // leave as-is
+        } else {
+          noteWithImage.image = `/api/images?file=${encodeURIComponent(
+            noteWithImage.image
+          )}`;
+        }
+      }
+
+      setNotes((prev) => [...prev, noteWithImage]);
 
       const platformText = game.selectedPlatform
         ? ` for ${game.selectedPlatform.name}`
@@ -132,7 +147,8 @@ export const useGameManagement = (
     if (!formData.name || !formData.description) return;
 
     try {
-      await fetchWithAuth("/api/games", {
+      // Create on backend and get the created game back
+      const created = await fetchWithAuth("/api/games", {
         method: "POST",
         body: JSON.stringify({
           name: formData.name,
@@ -148,8 +164,22 @@ export const useGameManagement = (
         }),
       });
 
-      // Refresh the complete list from backend to ensure consistency
-      await fetchNotes();
+      const createdNote = { ...created };
+      if (createdNote.image) {
+        if (
+          createdNote.image.startsWith("http://") ||
+          createdNote.image.startsWith("https://")
+        ) {
+          // leave as-is
+        } else {
+          createdNote.image = `/api/images?file=${encodeURIComponent(
+            createdNote.image
+          )}`;
+        }
+      }
+
+      // Update local state so the new game appears immediately
+      setNotes((prev) => [...prev, createdNote]);
 
       if (onShowToast) {
         onShowToast(`"${formData.name}" added successfully!`);
