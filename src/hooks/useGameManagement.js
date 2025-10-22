@@ -84,10 +84,38 @@ export const useGameManagement = (
         return note;
       });
 
-      setNotes(notesWithImages);
-      console.log(
-        `[useGameManagement] fetchNotes setNotes count=${notesWithImages.length}`
-      );
+      // Merge server results with any local optimistic notes so we don't drop
+      // optimistic entries if the server response hasn't yet included them.
+      setNotes((prev) => {
+        try {
+          const serverMap = new Map();
+          notesWithImages.forEach((n) => serverMap.set(n.id, n));
+
+          // Start with server-provided notes
+          const merged = [...notesWithImages];
+
+          // Include any optimistic local notes (tmp- ids) or any notes
+          // that aren't present on the server yet
+          prev.forEach((local) => {
+            if (!local || !local.id) return;
+            if (local.id.startsWith("tmp-")) {
+              // keep optimistic entries
+              merged.push(local);
+            } else if (!serverMap.has(local.id)) {
+              // keep local entries that server doesn't return (avoid data loss)
+              merged.push(local);
+            }
+          });
+
+          console.log(
+            `[useGameManagement] fetchNotes setNotes mergedCount=${merged.length} serverCount=${notesWithImages.length} localPrev=${prev.length}`
+          );
+          return merged;
+        } catch (err) {
+          console.warn("[useGameManagement] fetchNotes merge error:", err);
+          return notesWithImages;
+        }
+      });
     } catch (error) {
       console.error("Error fetching notes:", error);
     }
