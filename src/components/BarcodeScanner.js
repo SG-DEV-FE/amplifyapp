@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import React, { useState, useEffect, useRef } from "react";
+import Quagga from "@ericblade/quagga2";
 import { isMobile } from "react-device-detect";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -12,28 +12,11 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   const [searchingGame, setSearchingGame] = useState(false);
   const [scannedCode, setScannedCode] = useState("");
   const [addToWishlist, setAddToWishlist] = useState(false);
-  const [scanner, setScanner] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false); // Prevent multiple scans
-
-  // Cleanup scanner on unmount
-  useEffect(() => {
-    return () => {
-      if (scanner) {
-        try {
-          if (scanner.getState() === 2) {
-            scanner.stop().catch(() => {});
-          }
-          scanner.clear().catch(() => {});
-        } catch (err) {
-          console.log("Scanner cleanup:", err);
-        }
-      }
-    };
-  }, [scanner]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const scannerRef = useRef(null);
 
   const searchGameByBarcode = async (barcode) => {
     try {
-      // Try UPCitemdb.com
       const response = await fetch(
         `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`
       );
@@ -114,30 +97,26 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     }
   };
 
-  const handleBarcodeDetected = async (decodedText) => {
-    // Prevent processing multiple barcodes at once
-    if (isProcessing) {
-      console.log("📱 Already processing a barcode, ignoring...");
-      return;
-    }
+  const handleDetected = async (result) => {
+    if (isProcessing || !result || !result.codeResult) return;
 
-    console.log("📱 Barcode detected:", decodedText);
+    const code = result.codeResult.code;
+    console.log("📱 Barcode detected:", code);
+
     setIsProcessing(true);
-    setScannedCode(decodedText);
-
-    // Don't stop scanner yet - let it keep running in case this barcode doesn't work
+    setScannedCode(code);
     setSearchingGame(true);
 
+    // Stop scanner
+    stopScanning();
+
     try {
-      const gameInfo = await searchGameByBarcode(decodedText);
+      const gameInfo = await searchGameByBarcode(code);
 
       if (gameInfo) {
         const rawgGame = await searchRAWGByName(gameInfo.name);
 
         if (rawgGame) {
-          // Success! Now we can stop scanning
-          await stopScanning();
-
           const gameWithWishlist = {
             ...rawgGame,
             isWishlisted: addToWishlist,
@@ -146,11 +125,8 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           if (onGameAdd) {
             await onGameAdd(gameWithWishlist);
           }
-          // Close modal after successful add
           setTimeout(() => onClose(), 1000);
         } else {
-          // Game name found but not in RAWG - stop and show error
-          await stopScanning();
           setError(
             `Game "${gameInfo.name}" not found in RAWG database. Try manual search.`
           );
@@ -158,8 +134,6 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           setIsProcessing(false);
         }
       } else {
-        // Barcode not recognized as game - stop and show error
-        await stopScanning();
         setError(
           "Product not found or not a game. Try scanning another barcode."
         );
@@ -168,157 +142,86 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       }
     } catch (err) {
       console.error("Error processing barcode:", err);
-      await stopScanning();
       setError("Failed to process barcode. Please try again.");
       setSearchingGame(false);
       setIsProcessing(false);
     }
   };
 
-  const startScanning = async () => {
-    try {
-      setError("");
-      setIsScanning(true);
+  const startScanning = () => {
+    setError("");
+    setIsScanning(true);
 
-      // First, explicitly request camera permission to trigger browser prompt
-      try {
-        const permissionStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-        // Stop the permission test stream immediately
-        permissionStream.getTracks().forEach((track) => track.stop());
-        console.log("📱 Camera permission granted");
-      } catch (permErr) {
-        console.error("Permission error:", permErr);
-        throw new Error(
-          "Camera permission denied. Please enable camera access in your browser settings and reload the page."
-        );
-      }
-
-      const html5QrCode = new Html5Qrcode("barcode-reader");
-      setScanner(html5QrCode);
-
-      // Now get cameras - permission is already granted
-      const devices = await Html5Qrcode.getCameras();
-
-      if (!devices || devices.length === 0) {
-        throw new Error("No cameras found on this device.");
-      }
-
-      console.log("📱 Available cameras:", devices.length);
-
-      // Find back camera (environment facing)
-      const backCamera = devices.find(
-        (device) =>
-          device.label.toLowerCase().includes("back") ||
-          device.label.toLowerCase().includes("rear") ||
-          device.label.toLowerCase().includes("environment")
-      );
-
-      const cameraId = backCamera ? backCamera.id : devices[0].id;
-      console.log("📱 Using camera:", backCamera?.label || devices[0].label);
-
-      // Start scanning with proper config for UPC/EAN barcodes
-      await html5QrCode.start(
-        cameraId,
-        {
-          fps: 10, // Scans per second
-          qrbox: { width: 300, height: 150 }, // Wider scanning box for barcodes
-          aspectRatio: 1.7777778, // 16:9 aspect ratio
-          // Specify barcode formats to scan
-          formatsToSupport: [
-            0, // QR_CODE
-            9, // EAN_13 (most common for games in Europe)
-            10, // EAN_8
-            11, // UPC_A (most common for games in US)
-            12, // UPC_E
-            13, // CODE_128
-            14, // CODE_39
-          ],
-          // Enable experimental features for better barcode detection
-          experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true,
+    Quagga.init(
+      {
+        inputStream: {
+          type: "LiveStream",
+          target: scannerRef.current,
+          constraints: {
+            facingMode: "environment",
+            width: { min: 640, ideal: 1280, max: 1920 },
+            height: { min: 480, ideal: 720, max: 1080 },
           },
         },
-        handleBarcodeDetected,
-        (errorMessage) => {
-          // Ignore "not found" errors - just means no barcode in frame
-          if (
-            !errorMessage.includes("NotFoundException") &&
-            !errorMessage.includes("No MultiFormat Readers")
-          ) {
-            console.log("Scan error:", errorMessage);
-          }
+        decoder: {
+          readers: [
+            "ean_reader", // EAN-13, EAN-8
+            "upc_reader", // UPC-A, UPC-E
+            "code_128_reader", // Code 128
+            "code_39_reader", // Code 39
+          ],
+          multiple: false,
+        },
+        locate: true,
+        locator: {
+          patchSize: "medium",
+          halfSample: true,
+        },
+        numOfWorkers: 2,
+        frequency: 10,
+      },
+      (err) => {
+        if (err) {
+          console.error("Quagga init error:", err);
+          setError("Failed to start camera. Please check permissions.");
+          setIsScanning(false);
+          return;
         }
-      );
-
-      console.log("📱 Scanner started successfully");
-    } catch (err) {
-      console.error("Failed to start scanner:", err);
-      setError(
-        err.message ||
-          "Failed to start camera. Please check permissions and try again."
-      );
-      setIsScanning(false);
-      // Clean up scanner if it was created
-      if (scanner) {
-        scanner.stop().catch((e) => console.log("Cleanup error:", e));
-        setScanner(null);
+        console.log("📱 Scanner started successfully");
+        Quagga.start();
       }
-    }
+    );
+
+    Quagga.onDetected(handleDetected);
   };
 
-  const stopScanning = async () => {
+  const stopScanning = () => {
     console.log("📱 Stopping scanner...");
     try {
-      if (scanner) {
-        try {
-          // Check if scanner is actually running
-          if (scanner.getState() === 2) {
-            // 2 = SCANNING state
-            await scanner.stop();
-            console.log("📱 Scanner stopped");
-          }
-        } catch (stopErr) {
-          console.log("Stop error (may already be stopped):", stopErr);
-        }
-
-        try {
-          await scanner.clear();
-          console.log("📱 Scanner cleared");
-        } catch (clearErr) {
-          console.log("Clear error (may not need clearing):", clearErr);
-        }
-
-        setScanner(null);
-      }
-
+      Quagga.stop();
+      Quagga.offDetected(handleDetected);
       setIsScanning(false);
       setIsProcessing(false);
       setSearchingGame(false);
-
-      // Clear the scanner div content to prevent white screen
-      const scannerElement = document.getElementById("barcode-reader");
-      if (scannerElement) {
-        scannerElement.innerHTML = "";
-      }
-
-      console.log("📱 Scanner cleanup complete");
+      console.log("📱 Scanner stopped");
     } catch (err) {
       console.log("Error stopping scanner:", err);
       setIsScanning(false);
       setIsProcessing(false);
       setSearchingGame(false);
-
-      // Force clear the div anyway
-      const scannerElement = document.getElementById("barcode-reader");
-      if (scannerElement) {
-        scannerElement.innerHTML = "";
-      }
     }
   };
 
-  // Don't show on desktop
+  useEffect(() => {
+    return () => {
+      if (isScanning) {
+        Quagga.stop();
+        Quagga.offDetected(handleDetected);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isScanning]);
+
   if (!isMobile) {
     return null;
   }
@@ -330,9 +233,8 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           <h3 className="text-lg font-semibold">Scan Game Barcode</h3>
           <button
             onClick={() => {
-              stopScanning().finally(() => {
-                onClose();
-              });
+              stopScanning();
+              onClose();
             }}
             className="text-gray-500 hover:text-gray-700"
           >
@@ -380,7 +282,6 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
                   </svg>
                 </label>
               </div>
-
               {scannedCode && (
                 <p className="text-sm text-gray-500 mb-2">
                   Last scanned: {scannedCode}
@@ -402,9 +303,15 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
         {isScanning && (
           <div className="text-center">
             <div
-              id="barcode-reader"
+              ref={scannerRef}
+              id="barcode-scanner"
               className="rounded-lg overflow-hidden mb-4"
-            ></div>
+              style={{
+                position: "relative",
+                width: "100%",
+                maxHeight: "300px",
+              }}
+            />
             <p className="text-gray-600 mb-2">
               Position the barcode in the scanning area
             </p>
@@ -430,19 +337,6 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
         {error && (
           <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
             <p className="font-semibold mb-2">⚠️ {error}</p>
-            {error.includes("permission") && (
-              <div className="text-xs mt-2 p-2 bg-white rounded border border-red-300">
-                <p className="font-semibold mb-1">How to enable camera:</p>
-                <p className="mb-1">
-                  <strong>Firefox:</strong> Tap the lock icon → Permissions →
-                  Camera → Allow
-                </p>
-                <p>
-                  <strong>Chrome:</strong> Tap the lock icon → Site settings →
-                  Camera → Allow
-                </p>
-              </div>
-            )}
             <button
               onClick={() => {
                 setError("");
