@@ -440,6 +440,54 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     }
   };
 
+  // Decode a single image file using Quagga.decodeSingle (useful for debugging scanned photos)
+  const decodeImageFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = reader.result;
+      setError("");
+      setSearchingGame(true);
+      setIsProcessing(true);
+
+      Quagga.decodeSingle(
+        {
+          src,
+          numOfWorkers: 0, // decodeSingle must run in main thread
+          inputStream: { size: 800 },
+          decoder: {
+            readers: [
+              "ean_reader",
+              "upc_reader",
+              "ean_8_reader",
+              "upc_e_reader",
+            ],
+          },
+        },
+        (result) => {
+          if (result && result.codeResult && result.codeResult.code) {
+            const code = result.codeResult.code;
+            console.log("decodeSingle found code:", code, result);
+            setScannedCode(code);
+            processBarcode(code);
+          } else {
+            console.log("decodeSingle found nothing", result);
+            setError(
+              "No barcode detected in image. Try a different photo or use live scanning."
+            );
+            setSearchingGame(false);
+            setIsProcessing(false);
+          }
+        }
+      );
+    };
+    reader.onerror = (e) => {
+      console.error("Failed to read file:", e);
+      setError("Failed to read image file");
+    };
+    reader.readAsDataURL(file);
+  };
+
   const stopScanning = () => {
     try {
       Quagga.stop();
@@ -554,6 +602,20 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
             >
               Start Scanning
             </button>
+            <div className="mt-2 text-center">
+              <label className="block text-sm text-gray-600 mb-1">
+                Or choose an image to decode
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files && e.target.files[0];
+                  if (f) decodeImageFile(f);
+                }}
+                className="mx-auto"
+              />
+            </div>
             <p className="text-xs text-gray-500 mt-2">
               💡 Make sure to allow camera access when prompted by your browser
             </p>
