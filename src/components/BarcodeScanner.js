@@ -101,6 +101,14 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     if (isProcessing || !result || !result.codeResult) return;
 
     const code = result.codeResult.code;
+
+    // Validate the barcode (should be numeric and reasonable length)
+    if (!code || !/^\d+$/.test(code) || code.length < 8) {
+      console.log("Invalid barcode detected:", code);
+      return;
+    }
+
+    console.log("✅ Valid barcode detected:", code);
     setIsProcessing(true);
     setScannedCode(code);
     setSearchingGame(true);
@@ -170,32 +178,30 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
               target: scannerRef.current,
               constraints: {
                 facingMode: "environment",
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 },
-              },
-              area: {
-                // Scanning area (percentage of video)
-                top: "20%",
-                right: "10%",
-                left: "10%",
-                bottom: "20%",
+                width: { min: 640, ideal: 1920, max: 1920 },
+                height: { min: 480, ideal: 1080, max: 1080 },
               },
             },
             decoder: {
               readers: [
-                "ean_reader", // EAN-13, EAN-8
+                "ean_reader", // EAN-13, EAN-8 (most common for games)
+                "ean_8_reader",
                 "upc_reader", // UPC-A, UPC-E
-                "code_128_reader", // Code 128
-                "code_39_reader", // Code 39
+                "upc_e_reader",
               ],
-              multiple: false,
+              debug: {
+                drawBoundingBox: true,
+                showFrequency: true,
+                drawScanline: true,
+                showPattern: true,
+              },
             },
             locate: true,
             locator: {
-              patchSize: "medium",
-              halfSample: true,
+              patchSize: "large", // Changed from medium to large for better detection
+              halfSample: false, // Changed to false for better quality
             },
-            numOfWorkers: navigator.hardwareConcurrency || 2,
+            numOfWorkers: navigator.hardwareConcurrency || 4,
             frequency: 10,
           },
           (err) => {
@@ -212,6 +218,29 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       // Start scanning after successful initialization
       Quagga.start();
 
+      // Add processing callback for debugging
+      Quagga.onProcessed((result) => {
+        if (result) {
+          if (result.boxes) {
+            // Draw detection boxes on canvas for visual feedback
+            const drawingCtx = Quagga.canvas.ctx.overlay;
+            const drawingCanvas = Quagga.canvas.dom.overlay;
+
+            if (drawingCtx && drawingCanvas) {
+              drawingCtx.clearRect(
+                0,
+                0,
+                drawingCanvas.width,
+                drawingCanvas.height
+              );
+            }
+          }
+          if (result.codeResult) {
+            console.log("Code detected (processing):", result.codeResult.code);
+          }
+        }
+      });
+
       // Attach detection handler
       Quagga.onDetected(handleDetected);
     } catch (err) {
@@ -227,6 +256,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     try {
       Quagga.stop();
       Quagga.offDetected(handleDetected);
+      Quagga.offProcessed();
       setIsScanning(false);
       setIsProcessing(false);
       setSearchingGame(false);
