@@ -100,29 +100,64 @@ export const useGameManagement = (
       if (game.background_image) {
         gameData.image = game.background_image;
       }
+      // Optimistic update: add a temporary note so the UI updates instantly
+      const tempId = `tmp-${Date.now()}`;
+      const tempNote = {
+        ...gameData,
+        id: tempId,
+        created_at: new Date().toISOString(),
+        user_id: userId || null,
+      };
 
-      // Create the game on the backend and get the created object back
-      const createdGame = await fetchWithAuth("/api/games", {
-        method: "POST",
-        body: JSON.stringify(gameData),
-      });
-
-      // Immediately update local state with the created game so UI updates without a full refresh
-      const noteWithImage = { ...createdGame };
-      if (noteWithImage.image) {
-        if (
-          noteWithImage.image.startsWith("http://") ||
-          noteWithImage.image.startsWith("https://")
-        ) {
-          // leave as-is
-        } else {
-          noteWithImage.image = `/api/images?file=${encodeURIComponent(
-            noteWithImage.image
-          )}`;
-        }
+      // Normalize image URL for display (if it's not a full URL, treat as Netlify filename)
+      if (tempNote.image && !tempNote.image.startsWith("http")) {
+        tempNote.image = `/api/images?file=${encodeURIComponent(
+          tempNote.image
+        )}`;
       }
 
-      setNotes((prev) => [...prev, noteWithImage]);
+      setNotes((prev) => [...prev, tempNote]);
+
+      try {
+        // Send create request
+        const createdGame = await fetchWithAuth("/api/games", {
+          method: "POST",
+          body: JSON.stringify(gameData),
+        });
+
+        // Normalize created game image for display
+        const createdNormalized = { ...createdGame };
+        if (
+          createdNormalized.image &&
+          !createdNormalized.image.startsWith("http")
+        ) {
+          createdNormalized.image = `/api/images?file=${encodeURIComponent(
+            createdNormalized.image
+          )}`;
+        }
+
+        // Replace temporary note with the server-created note
+        setNotes((prev) =>
+          prev.map((n) => (n.id === tempId ? createdNormalized : n))
+        );
+
+        // Background reconcile: ensure we eventually match server state
+        // Do not await so UI stays responsive
+        fetchNotes().catch((e) =>
+          console.warn("Background fetchNotes failed:", e)
+        );
+      } catch (postErr) {
+        // Remove temporary note on failure
+        setNotes((prev) => prev.filter((n) => n.id !== tempId));
+        console.error("Error adding game from search (POST):", postErr);
+        if (onShowToast) {
+          onShowToast(
+            "Failed to add game. Please try the manual form.",
+            "error"
+          );
+        }
+        return;
+      }
 
       const platformText = game.selectedPlatform
         ? ` for ${game.selectedPlatform.name}`
@@ -147,39 +182,74 @@ export const useGameManagement = (
     if (!formData.name || !formData.description) return;
 
     try {
-      // Create on backend and get the created game back
-      const created = await fetchWithAuth("/api/games", {
-        method: "POST",
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          genre: formData.genre,
-          release_date: formData.releaseDate,
-          players: parseInt(formData.players) || null,
-          publisher: formData.publisher,
-          image: formData.image,
-          selectedPlatform: formData.selectedPlatform,
-          rawgId: null, // Manual entries don't have RAWG ID
-          isWishlisted: formData.isWishlisted || false, // Add wishlist status
-        }),
-      });
+      // Optimistic update: create a temporary note locally first
+      const tempId = `tmp-${Date.now()}`;
+      const tempNote = {
+        id: tempId,
+        name: formData.name,
+        description: formData.description,
+        genre: formData.genre,
+        release_date: formData.releaseDate,
+        players: parseInt(formData.players) || null,
+        publisher: formData.publisher,
+        image: formData.image || "",
+        selectedPlatform: formData.selectedPlatform,
+        rawgId: null,
+        isWishlisted: formData.isWishlisted || false,
+        created_at: new Date().toISOString(),
+        user_id: userId || null,
+      };
 
-      const createdNote = { ...created };
-      if (createdNote.image) {
-        if (
-          createdNote.image.startsWith("http://") ||
-          createdNote.image.startsWith("https://")
-        ) {
-          // leave as-is
-        } else {
+      if (tempNote.image && !tempNote.image.startsWith("http")) {
+        tempNote.image = `/api/images?file=${encodeURIComponent(
+          tempNote.image
+        )}`;
+      }
+
+      setNotes((prev) => [...prev, tempNote]);
+
+      try {
+        const created = await fetchWithAuth("/api/games", {
+          method: "POST",
+          body: JSON.stringify({
+            name: formData.name,
+            description: formData.description,
+            genre: formData.genre,
+            release_date: formData.releaseDate,
+            players: parseInt(formData.players) || null,
+            publisher: formData.publisher,
+            image: formData.image,
+            selectedPlatform: formData.selectedPlatform,
+            rawgId: null, // Manual entries don't have RAWG ID
+            isWishlisted: formData.isWishlisted || false, // Add wishlist status
+          }),
+        });
+
+        const createdNote = { ...created };
+        if (createdNote.image && !createdNote.image.startsWith("http")) {
           createdNote.image = `/api/images?file=${encodeURIComponent(
             createdNote.image
           )}`;
         }
-      }
 
-      // Update local state so the new game appears immediately
-      setNotes((prev) => [...prev, createdNote]);
+        // Replace temp with server-created note
+        setNotes((prev) =>
+          prev.map((n) => (n.id === tempId ? createdNote : n))
+        );
+
+        // Background reconcile
+        fetchNotes().catch((e) =>
+          console.warn("Background fetchNotes failed:", e)
+        );
+      } catch (postErr) {
+        // Remove optimistic item and show error
+        setNotes((prev) => prev.filter((n) => n.id !== tempId));
+        console.error("Error creating note (POST):", postErr);
+        if (onShowToast) {
+          onShowToast("Failed to create game. Please try again.", "error");
+        }
+        return;
+      }
 
       if (onShowToast) {
         onShowToast(`"${formData.name}" added successfully!`);
