@@ -271,6 +271,7 @@ function GameLibraryApp() {
             onUpdateMissingImages={updateMissingImages}
             hasGames={notes.length > 0}
             isUpdatingImages={isUpdatingImages}
+            existingGames={notes}
           />
 
           {/* Game Library Component */}

@@ -16,13 +16,18 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   const scannerRef = useRef(null);
 
   const searchGameByBarcode = async (barcode) => {
+    console.log("🔍 Searching for barcode:", barcode);
+
     try {
+      // Try UPC database first
       const response = await fetch(
         `https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`
       );
 
       if (response.ok) {
         const data = await response.json();
+        console.log("📦 UPC Database response:", data);
+
         if (data.code === "OK" && data.items && data.items.length > 0) {
           const item = data.items[0];
           const gameKeywords = [
@@ -39,6 +44,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
             "switch",
           ];
 
+          // Check if it's likely a game product
           const isGame = gameKeywords.some(
             (keyword) =>
               (item.title || "").toLowerCase().includes(keyword) ||
@@ -46,13 +52,43 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
               (item.brand || "").toLowerCase().includes(keyword)
           );
 
-          if (item.title && isGame) {
-            return { name: item.title, barcode };
+          if (item.title) {
+            // Clean up the title - remove platform info in parentheses for better RAWG search
+            const cleanTitle = item.title
+              .replace(/\s*\([^)]*\)\s*/g, " ")
+              .trim();
+
+            if (isGame) {
+              console.log(
+                "✅ Game found in UPC DB:",
+                cleanTitle,
+                "| Original:",
+                item.title
+              );
+            } else {
+              console.log(
+                "⚠️ Product found but may not be a game:",
+                cleanTitle
+              );
+            }
+
+            return {
+              name: cleanTitle,
+              originalName: item.title,
+              barcode,
+              isGame,
+            };
           }
+        } else {
+          console.log("❌ UPC Database: No items found or invalid response");
         }
+      } else {
+        console.log("❌ UPC Database API error:", response.status);
       }
 
-      // Fallback: Try RAWG directly
+      // If UPC lookup fails, try searching RAWG directly with the barcode
+      // Some games might be searchable by UPC in RAWG
+      console.log("🎮 Trying RAWG direct search with barcode...");
       const rawgResponse = await fetch(
         `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
           barcode
@@ -62,10 +98,12 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       if (rawgResponse.ok) {
         const data = await rawgResponse.json();
         if (data.results && data.results.length > 0) {
+          console.log("✅ Found in RAWG by barcode:", data.results[0].name);
           return { name: data.results[0].name, barcode, rawgDirect: true };
         }
       }
 
+      console.log("❌ No game found for barcode:", barcode);
       return null;
     } catch (error) {
       console.error("Barcode search error:", error);
@@ -103,12 +141,13 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     const code = result.codeResult.code;
 
     // Validate the barcode (should be numeric and reasonable length)
-    if (!code || !/^\d+$/.test(code) || code.length < 8) {
-      console.log("Invalid barcode detected:", code);
+    // Video game barcodes are typically 12-13 digits (UPC-A/EAN-13)
+    if (!code || !/^\d+$/.test(code) || code.length < 8 || code.length > 14) {
+      console.log("❌ Invalid barcode format:", code, "Length:", code?.length);
       return;
     }
 
-    console.log("✅ Valid barcode detected:", code);
+    console.log("✅ Valid barcode detected:", code, "Length:", code.length);
     setIsProcessing(true);
     setScannedCode(code);
     setSearchingGame(true);
@@ -141,14 +180,16 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
         }
       } else {
         setError(
-          "Product not found or not a game. Try scanning another barcode."
+          `Barcode ${code} not recognized as a video game. The product may not be in our database. Try manual search instead.`
         );
         setSearchingGame(false);
         setIsProcessing(false);
       }
     } catch (err) {
       console.error("Error processing barcode:", err);
-      setError("Failed to process barcode. Please try again.");
+      setError(
+        `Failed to process barcode ${code}. Please try again or use manual search.`
+      );
       setSearchingGame(false);
       setIsProcessing(false);
     }
