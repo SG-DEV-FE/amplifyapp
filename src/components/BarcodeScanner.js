@@ -218,18 +218,35 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       const cameraId = backCamera ? backCamera.id : devices[0].id;
       console.log("📱 Using camera:", backCamera?.label || devices[0].label);
 
-      // Start scanning with proper config
+      // Start scanning with proper config for UPC/EAN barcodes
       await html5QrCode.start(
         cameraId,
         {
           fps: 10, // Scans per second
-          qrbox: { width: 250, height: 150 }, // Scanning box size
+          qrbox: { width: 300, height: 150 }, // Wider scanning box for barcodes
           aspectRatio: 1.7777778, // 16:9 aspect ratio
+          // Specify barcode formats to scan
+          formatsToSupport: [
+            0, // QR_CODE
+            9, // EAN_13 (most common for games in Europe)
+            10, // EAN_8
+            11, // UPC_A (most common for games in US)
+            12, // UPC_E
+            13, // CODE_128
+            14, // CODE_39
+          ],
+          // Enable experimental features for better barcode detection
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true,
+          },
         },
         handleBarcodeDetected,
         (errorMessage) => {
           // Ignore "not found" errors - just means no barcode in frame
-          if (!errorMessage.includes("NotFoundException")) {
+          if (
+            !errorMessage.includes("NotFoundException") &&
+            !errorMessage.includes("No MultiFormat Readers")
+          ) {
             console.log("Scan error:", errorMessage);
           }
         }
