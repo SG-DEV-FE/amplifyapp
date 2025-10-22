@@ -13,6 +13,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   const [scannedCode, setScannedCode] = useState("");
   const [addToWishlist, setAddToWishlist] = useState(false);
   const [scanner, setScanner] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false); // Prevent multiple scans
 
   // Cleanup scanner on unmount
   useEffect(() => {
@@ -20,7 +21,10 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       if (scanner) {
         scanner
           .stop()
-          .catch((err) => console.log("Scanner already stopped:", err));
+          .then(() => {
+            return scanner.clear();
+          })
+          .catch((err) => console.log("Scanner cleanup:", err));
       }
     };
   }, [scanner]);
@@ -109,11 +113,23 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   };
 
   const handleBarcodeDetected = async (decodedText) => {
-    console.log("📱 Barcode detected:", decodedText);
+    // Prevent processing multiple barcodes at once
+    if (isProcessing) {
+      console.log("📱 Already processing a barcode, ignoring...");
+      return;
+    }
 
-    // Stop scanning
+    console.log("📱 Barcode detected:", decodedText);
+    setIsProcessing(true);
+
+    // Stop scanning immediately
     if (scanner) {
-      await scanner.stop();
+      try {
+        await scanner.stop();
+        setScanner(null);
+      } catch (err) {
+        console.log("Error stopping scanner:", err);
+      }
     }
 
     setIsScanning(false);
@@ -141,17 +157,21 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
           setError(
             `Game "${gameInfo.name}" not found in RAWG database. Try manual search.`
           );
+          setSearchingGame(false);
+          setIsProcessing(false);
         }
       } else {
         setError(
           "Product not found or not a game. Try scanning another barcode."
         );
+        setSearchingGame(false);
+        setIsProcessing(false);
       }
     } catch (err) {
       console.error("Error processing barcode:", err);
       setError("Failed to process barcode. Please try again.");
-    } finally {
       setSearchingGame(false);
+      setIsProcessing(false);
     }
   };
 
@@ -235,12 +255,21 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     try {
       if (scanner) {
         await scanner.stop();
+        await scanner.clear();
         setScanner(null);
       }
       setIsScanning(false);
+      setIsProcessing(false);
+
+      // Clear the scanner div content to prevent white screen
+      const scannerElement = document.getElementById("barcode-reader");
+      if (scannerElement) {
+        scannerElement.innerHTML = "";
+      }
     } catch (err) {
       console.log("Error stopping scanner:", err);
       setIsScanning(false);
+      setIsProcessing(false);
     }
   };
 
@@ -371,6 +400,7 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
               onClick={() => {
                 setError("");
                 setScannedCode("");
+                setIsProcessing(false);
               }}
               className="block w-full mt-2 bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600"
             >
