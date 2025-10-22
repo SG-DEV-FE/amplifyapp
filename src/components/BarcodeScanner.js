@@ -19,12 +19,14 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   useEffect(() => {
     return () => {
       if (scanner) {
-        scanner
-          .stop()
-          .then(() => {
-            return scanner.clear();
-          })
-          .catch((err) => console.log("Scanner cleanup:", err));
+        try {
+          if (scanner.getState() === 2) {
+            scanner.stop().catch(() => {});
+          }
+          scanner.clear().catch(() => {});
+        } catch (err) {
+          console.log("Scanner cleanup:", err);
+        }
       }
     };
   }, [scanner]);
@@ -121,20 +123,11 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
 
     console.log("📱 Barcode detected:", decodedText);
     setIsProcessing(true);
-
-    // Stop scanning immediately
-    if (scanner) {
-      try {
-        await scanner.stop();
-        setScanner(null);
-      } catch (err) {
-        console.log("Error stopping scanner:", err);
-      }
-    }
-
-    setIsScanning(false);
-    setSearchingGame(true);
     setScannedCode(decodedText);
+
+    // Stop scanning and show searching state
+    await stopScanning();
+    setSearchingGame(true);
 
     try {
       const gameInfo = await searchGameByBarcode(decodedText);
@@ -252,24 +245,52 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   };
 
   const stopScanning = async () => {
+    console.log("📱 Stopping scanner...");
     try {
       if (scanner) {
-        await scanner.stop();
-        await scanner.clear();
+        try {
+          // Check if scanner is actually running
+          if (scanner.getState() === 2) {
+            // 2 = SCANNING state
+            await scanner.stop();
+            console.log("📱 Scanner stopped");
+          }
+        } catch (stopErr) {
+          console.log("Stop error (may already be stopped):", stopErr);
+        }
+
+        try {
+          await scanner.clear();
+          console.log("📱 Scanner cleared");
+        } catch (clearErr) {
+          console.log("Clear error (may not need clearing):", clearErr);
+        }
+
         setScanner(null);
       }
+
       setIsScanning(false);
       setIsProcessing(false);
+      setSearchingGame(false);
 
       // Clear the scanner div content to prevent white screen
       const scannerElement = document.getElementById("barcode-reader");
       if (scannerElement) {
         scannerElement.innerHTML = "";
       }
+
+      console.log("📱 Scanner cleanup complete");
     } catch (err) {
       console.log("Error stopping scanner:", err);
       setIsScanning(false);
       setIsProcessing(false);
+      setSearchingGame(false);
+
+      // Force clear the div anyway
+      const scannerElement = document.getElementById("barcode-reader");
+      if (scannerElement) {
+        scannerElement.innerHTML = "";
+      }
     }
   };
 
@@ -284,9 +305,10 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Scan Game Barcode</h3>
           <button
-            onClick={async () => {
-              await stopScanning();
-              onClose();
+            onClick={() => {
+              stopScanning().finally(() => {
+                onClose();
+              });
             }}
             className="text-gray-500 hover:text-gray-700"
           >
