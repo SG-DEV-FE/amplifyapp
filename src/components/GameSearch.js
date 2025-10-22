@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { isMobile } from "react-device-detect";
+// import { isMobile } from "react-device-detect"; (barcode scanner removed)
 import psLogo from "../ps-logo.svg";
-import BarcodeScanner from "./BarcodeScanner";
 
 const RAWG_API_KEY = process.env.REACT_APP_RAWG_API_KEY || "";
 const RAWG_BASE_URL = "https://api.rawg.io/api";
@@ -24,7 +23,6 @@ const GameSearch = ({
     useState(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
   const [addToWishlist, setAddToWishlist] = useState(false);
-  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   // Helper function to check if a game has been recently added
   const isGameRecentlyAdded = (gameId) => {
@@ -168,16 +166,7 @@ const GameSearch = ({
                 <FontAwesomeIcon icon="times" />
               </button>
             )}
-            {/* Barcode Scanner Button - Only show on mobile */}
-            {isMobile && (
-              <button
-                onClick={() => setShowBarcodeScanner(true)}
-                className="text-blue-500 hover:text-blue-700 mr-3 sm:mr-4 p-2"
-                title="Scan barcode"
-              >
-                <FontAwesomeIcon icon="barcode" className="text-lg" />
-              </button>
-            )}
+            {/* Barcode scanner removed */}
           </div>
 
           {isSearching && (
@@ -392,17 +381,7 @@ const GameSearch = ({
           )}
         </div>
 
-        {/* Barcode Scanner Modal */}
-        {showBarcodeScanner && (
-          <BarcodeScanner
-            onGameFound={(game) => {
-              console.log("Game found from barcode:", game);
-              setShowBarcodeScanner(false);
-            }}
-            onClose={() => setShowBarcodeScanner(false)}
-            onGameAdd={onGameAdd}
-          />
-        )}
+        {/* Barcode scanner removed */}
       </div>
     </div>
   );
