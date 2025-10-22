@@ -122,9 +122,6 @@ const GameForm = ({
 
     const fileName = `${Date.now()}-${sanitizedName}`;
 
-    console.log("Original filename:", file.name);
-    console.log("Sanitized filename:", fileName, "in edit mode:", editMode);
-
     try {
       // Upload to Netlify Functions
       const formData = new FormData();
@@ -149,15 +146,12 @@ const GameForm = ({
       }
 
       const result = await response.json();
-      console.log("File uploaded successfully:", result.filename);
 
       setFormData({ ...formData, image: result.filename });
       if (editMode) {
         setNewImageUploaded(true);
-        console.log("New image uploaded during edit");
       }
     } catch (error) {
-      console.error("Error uploading file:", error);
       alert(`Upload error: ${error.message}`);
     }
   };

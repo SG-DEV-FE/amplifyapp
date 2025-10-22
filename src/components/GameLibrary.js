@@ -9,20 +9,13 @@ const GameCard = ({
   onToggleWishlist,
   isDeletingGame,
 }) => {
-  console.log("🖼️ Rendering note:", {
-    name: note.name,
-    imageUrl: note.image,
-    hasImage: !!note.image,
-  });
-
   const handleImageError = (e) => {
-    console.log("❌ Image failed to load for:", note.name, "URL:", note.image);
     e.target.src = psLogo;
     e.target.onerror = null;
   };
 
   const handleImageLoad = () => {
-    console.log("✅ Image loaded successfully for:", note.name);
+    // Image loaded successfully
   };
 
   return (

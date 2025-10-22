@@ -47,19 +47,12 @@ export const useGameManagement = (
 
       // Handle image URLs - check if it's a URL or a Netlify image
       const notesWithImages = games.map((note) => {
-        console.log("🔍 Processing note:", {
-          id: note.id,
-          name: note.name,
-          originalImage: note.image,
-        });
-
         if (note.image) {
           // If it's already a full URL (from RAWG), use it directly
           if (
             note.image.startsWith("http://") ||
             note.image.startsWith("https://")
           ) {
-            console.log("📷 Using direct URL for:", note.name, note.image);
             return { ...note, image: note.image };
           }
           // If it's a filename, get the URL from Netlify
@@ -67,11 +60,9 @@ export const useGameManagement = (
             const imageUrl = `/api/images?file=${encodeURIComponent(
               note.image
             )}`;
-            console.log("📁 Using Netlify image for:", note.name, imageUrl);
             return { ...note, image: imageUrl };
           }
         }
-        console.log("❌ No image for:", note.name);
         return note;
       });
 
@@ -108,20 +99,12 @@ export const useGameManagement = (
       // Store the RAWG image URL directly
       if (game.background_image) {
         gameData.image = game.background_image;
-        console.log("🎮 RAWG Game Data:", {
-          name: game.name,
-          platform: game.selectedPlatform?.name || "Multiple",
-          imageUrl: game.background_image,
-          gameData: gameData,
-        });
       }
 
       const insertedGame = await fetchWithAuth("/api/games", {
         method: "POST",
         body: JSON.stringify(gameData),
       });
-
-      console.log("✅ Game inserted successfully:", insertedGame);
 
       // Immediately add the game to the local state with proper image handling
       const newGame = {
@@ -176,8 +159,6 @@ export const useGameManagement = (
         }),
       });
 
-      console.log("✅ Manual game inserted successfully:", insertedGame);
-
       // Update local state immediately for instant feedback
       setNotes((prevNotes) => [...prevNotes, insertedGame]);
 
@@ -226,8 +207,6 @@ export const useGameManagement = (
         method: "DELETE",
       });
 
-      console.log("✅ Game deleted from database");
-
       // Also delete the image if it exists and it's not a RAWG URL
       if (noteToDelete.image && !noteToDelete.image.startsWith("http")) {
         try {
@@ -237,15 +216,12 @@ export const useGameManagement = (
               method: "DELETE",
             }
           );
-          console.log("🖼️ Associated image deleted");
         } catch (error) {
-          console.error("Error deleting image:", error);
           // Don't fail the whole operation if image deletion fails
         }
       }
 
       // Refresh the games list to ensure consistency
-      console.log("🔄 Refreshing games list...");
       await fetchNotes();
 
       // Show success message
@@ -254,11 +230,7 @@ export const useGameManagement = (
           `"${noteToDelete.name}" has been successfully deleted from your library.`
         );
       }
-
-      console.log("✅ Game deletion completed successfully");
     } catch (error) {
-      console.error("Error deleting note:", error);
-
       // Restore the original notes on error
       setNotes(originalNotes);
 
@@ -277,10 +249,6 @@ export const useGameManagement = (
   const updateNote = async (formData, editingNote, newImageUploaded) => {
     if (!formData.name || !formData.description) return;
 
-    console.log("Updating note with data:", formData);
-    console.log("New image uploaded:", newImageUploaded);
-    console.log("Original note image:", editingNote.image);
-
     try {
       // If a new image was uploaded, delete the old one (only if it's a Netlify file)
       if (
@@ -295,9 +263,8 @@ export const useGameManagement = (
               method: "DELETE",
             }
           );
-          console.log("Deleted old image:", editingNote.image);
         } catch (error) {
-          console.error("Error deleting old image:", error);
+          // Error deleting old image, continue with update
         }
       }
 
@@ -321,10 +288,8 @@ export const useGameManagement = (
         body: JSON.stringify(updateData),
       });
 
-      console.log("Note updated successfully");
       await fetchNotes();
     } catch (error) {
-      console.error("Error updating note:", error);
       if (onShowToast) {
         onShowToast(`Update error: ${error.message}`, "error");
       }
@@ -351,17 +316,10 @@ export const useGameManagement = (
         return;
       }
 
-      console.log(
-        `🔍 Found ${gamesWithoutImages.length} games without images:`,
-        gamesWithoutImages.map((g) => g.name)
-      );
-
       let updatedCount = 0;
 
       for (const game of gamesWithoutImages) {
         try {
-          console.log(`🎮 Searching for image for: ${game.name}`);
-
           // Search RAWG for this game
           const response = await fetch(
             `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
@@ -370,7 +328,6 @@ export const useGameManagement = (
           );
 
           if (!response.ok) {
-            console.log(`❌ Failed to search for ${game.name}`);
             continue;
           }
 
@@ -387,27 +344,19 @@ export const useGameManagement = (
           }
 
           if (bestMatch && bestMatch.background_image) {
-            console.log(
-              `📷 Found image for ${game.name}:`,
-              bestMatch.background_image
-            );
-
             // Update the game with the new image
             await fetchWithAuth(`/api/games?id=${game.id}`, {
               method: "PUT",
               body: JSON.stringify({ image: bestMatch.background_image }),
             });
 
-            console.log(`✅ Updated image for ${game.name}`);
             updatedCount++;
-          } else {
-            console.log(`❌ No image found for ${game.name}`);
           }
 
           // Add a small delay to avoid rate limiting
           await new Promise((resolve) => setTimeout(resolve, 500));
         } catch (error) {
-          console.error(`Error processing ${game.name}:`, error);
+          // Error processing game, continue with next
         }
       }
 

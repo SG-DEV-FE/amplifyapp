@@ -101,8 +101,6 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     if (isProcessing || !result || !result.codeResult) return;
 
     const code = result.codeResult.code;
-    console.log("📱 Barcode detected:", code);
-
     setIsProcessing(true);
     setScannedCode(code);
     setSearchingGame(true);
@@ -182,12 +180,10 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
       },
       (err) => {
         if (err) {
-          console.error("Quagga init error:", err);
           setError("Failed to start camera. Please check permissions.");
           setIsScanning(false);
           return;
         }
-        console.log("📱 Scanner started successfully");
         Quagga.start();
       }
     );
@@ -196,16 +192,13 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
   };
 
   const stopScanning = () => {
-    console.log("📱 Stopping scanner...");
     try {
       Quagga.stop();
       Quagga.offDetected(handleDetected);
       setIsScanning(false);
       setIsProcessing(false);
       setSearchingGame(false);
-      console.log("📱 Scanner stopped");
     } catch (err) {
-      console.log("Error stopping scanner:", err);
       setIsScanning(false);
       setIsProcessing(false);
       setSearchingGame(false);

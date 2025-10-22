@@ -24,7 +24,6 @@ export const AuthProvider = ({ children }) => {
 
     // Check for current user
     const currentUser = netlifyIdentity.currentUser();
-    console.log("Initial Netlify Identity user:", currentUser);
 
     if (currentUser) {
       setUser(currentUser);
@@ -39,7 +38,6 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for auth events
     netlifyIdentity.on("login", (user) => {
-      console.log("Netlify Identity login:", user);
       setUser(user);
       localStorage.setItem("netlifyToken", user.token.access_token);
       localStorage.setItem("userId", user.id);
@@ -48,7 +46,6 @@ export const AuthProvider = ({ children }) => {
     });
 
     netlifyIdentity.on("logout", () => {
-      console.log("Netlify Identity logout");
       setUser(null);
       setIsAdmin(false);
       localStorage.removeItem("netlifyToken");
@@ -56,12 +53,11 @@ export const AuthProvider = ({ children }) => {
     });
 
     netlifyIdentity.on("error", (err) => {
-      console.error("Netlify Identity error:", err);
+      // Authentication error occurred
     });
 
     // Auto-logout on page leave/close/refresh for maximum security
     const handlePageLeave = () => {
-      console.log("Page is being left - signing out user");
       localStorage.clear();
       sessionStorage.clear();
       netlifyIdentity.logout();
@@ -75,10 +71,8 @@ export const AuthProvider = ({ children }) => {
     // Auto-logout when page becomes hidden (tab switch, minimize, etc.)
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        console.log("Page hidden - starting logout timer");
         setTimeout(() => {
           if (document.hidden) {
-            console.log("Page still hidden after 30s - auto logout");
             handlePageLeave();
           }
         }, 30000); // 30 seconds
@@ -113,13 +107,6 @@ export const AuthProvider = ({ children }) => {
       user?.app_metadata?.roles?.includes("admin") ||
       user?.user_metadata?.role === "admin";
 
-    console.log("Admin status check:", {
-      user: user?.email,
-      app_metadata: user?.app_metadata,
-      user_metadata: user?.user_metadata,
-      isAdmin: isAdminUser,
-    });
-
     setIsAdmin(!!isAdminUser);
   };
 
@@ -139,18 +126,15 @@ export const AuthProvider = ({ children }) => {
         netlifyIdentity.gotrue
           .signup(email, password)
           .then((user) => {
-            console.log("Signup successful:", user);
             resolve(user);
           })
           .catch((err) => {
-            console.error("Signup error:", err);
             reject(err);
           });
       });
 
       return { user, error: null };
     } catch (error) {
-      console.error("Signup error:", error);
       return {
         user: null,
         error: error.message || error.msg || "Signup failed",
@@ -167,8 +151,6 @@ export const AuthProvider = ({ children }) => {
       // Use Netlify Identity API directly (no modal)
       const user = await netlifyIdentity.gotrue.login(email, password, true);
 
-      console.log("Login successful:", user);
-
       // Manually set the user and store tokens
       setUser(user);
       localStorage.setItem("netlifyToken", user.token.access_token);
@@ -177,7 +159,6 @@ export const AuthProvider = ({ children }) => {
 
       return { user, error: null };
     } catch (error) {
-      console.error("Login error:", error);
       return {
         user: null,
         error: error.message || error.msg || "Login failed",
@@ -187,8 +168,6 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
-      console.log("Manual sign out initiated");
-
       // Clear state immediately for better UX
       setUser(null);
       setIsAdmin(false);
@@ -200,10 +179,7 @@ export const AuthProvider = ({ children }) => {
 
       // Sign out through Netlify Identity
       netlifyIdentity.logout();
-
-      console.log("Sign out completed");
     } catch (error) {
-      console.error("Error signing out:", error);
       // Ensure state is cleared even on error
       setUser(null);
       setIsAdmin(false);
@@ -215,9 +191,6 @@ export const AuthProvider = ({ children }) => {
     try {
       // This would need to be done through Netlify Identity's admin interface
       // or a Netlify Function with admin privileges
-      console.warn(
-        "makeUserAdmin should be done through Netlify Identity admin interface"
-      );
       return { error: "Use Netlify Identity admin interface to assign roles" };
     } catch (error) {
       return { error: error.message };
