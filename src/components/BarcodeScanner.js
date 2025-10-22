@@ -150,7 +150,10 @@ const BarcodeScanner = ({ onGameFound, onClose, onGameAdd }) => {
     setError("");
     setIsScanning(true);
 
-    // Ensure the scanner ref exists
+    // Wait for the next render cycle so the ref is attached
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Now check if the scanner ref exists
     if (!scannerRef.current) {
       setError("Scanner element not ready. Please try again.");
       setIsScanning(false);
