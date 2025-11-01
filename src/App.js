@@ -160,6 +160,7 @@ function GameLibraryApp() {
     updateMissingImages,
     toggleWishlist,
     createShareLink,
+    createWishlistShareLink,
     exportWishlistCSV,
     exportWishlistPDF,
   } = useGameManagement(user.id, showToast, showHeartNotification);
@@ -237,6 +238,7 @@ function GameLibraryApp() {
               {notes.length > 0 && (
                 <NavActionButtons
                   onShare={createShareLink}
+                  onShareWishlist={createWishlistShareLink}
                   onExportCSV={exportWishlistCSV}
                   onExportPDF={exportWishlistPDF}
                   wishlistCount={notes.filter(note => note.isWishlisted).length}
@@ -256,6 +258,7 @@ function GameLibraryApp() {
               {notes.length > 0 && (
                 <NavActionButtons
                   onShare={createShareLink}
+                  onShareWishlist={createWishlistShareLink}
                   onExportCSV={exportWishlistCSV}
                   onExportPDF={exportWishlistPDF}
                   wishlistCount={notes.filter(note => note.isWishlisted).length}

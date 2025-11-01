@@ -70,6 +70,7 @@ const SharedGameCard = ({ note }) => {
 const SharedLibrary = ({ shareId }) => {
   const [games, setGames] = useState([]);
   const [ownerName, setOwnerName] = useState("");
+  const [shareType, setShareType] = useState("full");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPlatform, setSelectedPlatform] = useState("all");
@@ -88,6 +89,7 @@ const SharedLibrary = ({ shareId }) => {
         const data = await response.json();
         setGames(data.games || []);
         setOwnerName(data.ownerName || "Anonymous User");
+        setShareType(data.shareType || "full");
       } catch (err) {
         setError(err.message);
       } finally {
@@ -176,21 +178,31 @@ const SharedLibrary = ({ shareId }) => {
         <div className="container mx-auto px-4 py-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white mb-2">
-              {ownerName}'s Game Library
+              {shareType === "wishlist" ? (
+                <>❤️ {ownerName}'s Wishlist</>
+              ) : (
+                <>{ownerName}'s Game Library</>
+              )}
             </h1>
             <p className="text-gray-400">
-              Shared game collection • {games.length} games
+              {shareType === "wishlist" ? (
+                <>Shared wishlist • {games.length} games wanted</>
+              ) : (
+                <>Shared game collection • {games.length} games</>
+              )}
             </p>
-            <div className="mt-2 flex justify-center gap-4 text-sm">
-              <span className="text-blue-400">
-                📚 {games.filter(g => !g.isWishlisted).length} in library
-              </span>
-              <span className="text-red-400">
-                ❤️ {games.filter(g => g.isWishlisted).length} wishlisted
-              </span>
-            </div>
+            {shareType === "full" && (
+              <div className="mt-2 flex justify-center gap-4 text-sm">
+                <span className="text-blue-400">
+                  📚 {games.filter(g => !g.isWishlisted).length} in library
+                </span>
+                <span className="text-red-400">
+                  ❤️ {games.filter(g => g.isWishlisted).length} wishlisted
+                </span>
+              </div>
+            )}
             <div className="mt-4 text-xs text-gray-500">
-              🎮 Read-only view • This is a shared library
+              🎮 Read-only view • This is a shared {shareType === "wishlist" ? "wishlist" : "library"}
             </div>
           </div>
         </div>

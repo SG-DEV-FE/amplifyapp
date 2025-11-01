@@ -25,8 +25,14 @@ const handler = async (req, context) => {
       const userKey = `user_${shareData.userId}`;
       const games = (await gamesStore.get(userKey, { type: "json" })) || [];
       
-      // Filter out sensitive data and include all games (library + wishlist)
-      const publicGames = games
+      // Filter games based on share type
+      let filteredGames = games;
+      if (shareData.shareType === "wishlist") {
+        filteredGames = games.filter(game => game.isWishlisted);
+      }
+      
+      // Filter out sensitive data and map public fields
+      const publicGames = filteredGames
         .map(game => ({
           id: game.id,
           name: game.name,
@@ -43,6 +49,7 @@ const handler = async (req, context) => {
       return new Response(JSON.stringify({
         games: publicGames,
         ownerName: shareData.ownerName || "Anonymous User",
+        shareType: shareData.shareType || "full",
         sharedAt: shareData.createdAt
       }), {
         status: 200,
@@ -64,7 +71,7 @@ const handler = async (req, context) => {
         });
       }
 
-      const { ownerName } = await req.json();
+      const { ownerName, shareType = "full" } = await req.json();
       
       // Generate a unique share ID
       const shareId = crypto.randomUUID();
@@ -73,6 +80,7 @@ const handler = async (req, context) => {
         shareId,
         userId: authUserId,
         ownerName: ownerName || "Anonymous User",
+        shareType: shareType, // "full" or "wishlist"
         createdAt: new Date().toISOString(),
         isActive: true
       };

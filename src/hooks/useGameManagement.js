@@ -739,6 +739,38 @@ export const useGameManagement = (
     }
   };
 
+  const createWishlistShareLink = async (ownerName) => {
+    try {
+      console.log("[createWishlistShareLink] Creating wishlist share link for:", ownerName);
+      
+      const data = await fetchWithAuth("/api/shared-library", {
+        method: "POST",
+        body: JSON.stringify({ ownerName, shareType: "wishlist" }),
+      });
+
+      console.log("[createWishlistShareLink] Success:", data);
+      
+      if (onShowToast) {
+        onShowToast("Wishlist share link created! Link copied to clipboard.");
+      }
+      
+      // Copy to clipboard
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(data.shareUrl);
+      } else {
+        console.warn("[createWishlistShareLink] Clipboard API not available");
+      }
+      
+      return data.shareUrl;
+    } catch (error) {
+      console.error("[createWishlistShareLink] Error creating wishlist share link:", error);
+      if (onShowToast) {
+        onShowToast(`Failed to create wishlist share link: ${error.message}`, "error");
+      }
+      throw error;
+    }
+  };
+
   // Export wishlist as CSV
   const exportWishlistCSV = () => {
     try {
@@ -888,6 +920,7 @@ export const useGameManagement = (
     updateMissingImages,
     toggleWishlist,
     createShareLink,
+    createWishlistShareLink,
     exportWishlistCSV,
     exportWishlistPDF,
   };

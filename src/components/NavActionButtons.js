@@ -2,14 +2,18 @@ import React, { useState } from "react";
 
 const NavActionButtons = ({
   onShare,
+  onShareWishlist,
   onExportCSV,
   onExportPDF,
   wishlistCount,
   totalGames
 }) => {
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showWishlistShareModal, setShowWishlistShareModal] = useState(false);
   const [ownerName, setOwnerName] = useState("");
+  const [wishlistOwnerName, setWishlistOwnerName] = useState("");
   const [isCreatingShare, setIsCreatingShare] = useState(false);
+  const [isCreatingWishlistShare, setIsCreatingWishlistShare] = useState(false);
 
   const handleCreateShare = async () => {
     if (!ownerName.trim()) {
@@ -26,6 +30,29 @@ const NavActionButtons = ({
       // Error handling is done in the parent component
     } finally {
       setIsCreatingShare(false);
+    }
+  };
+
+  const handleCreateWishlistShare = async () => {
+    if (!wishlistOwnerName.trim()) {
+      alert("Please enter your name for the shared wishlist.");
+      return;
+    }
+
+    if (wishlistCount === 0) {
+      alert("You don't have any items in your wishlist to share.");
+      return;
+    }
+
+    setIsCreatingWishlistShare(true);
+    try {
+      await onShareWishlist(wishlistOwnerName.trim());
+      setShowWishlistShareModal(false);
+      setWishlistOwnerName("");
+    } catch (error) {
+      // Error handling is done in the parent component
+    } finally {
+      setIsCreatingWishlistShare(false);
     }
   };
 
@@ -52,6 +79,29 @@ const NavActionButtons = ({
             />
           </svg>
         </button>
+
+        {/* Share Wishlist Icon */}
+        {wishlistCount > 0 && (
+          <button
+            onClick={() => setShowWishlistShareModal(true)}
+            title={`Share Wishlist (${wishlistCount} games)`}
+            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316"
+              />
+            </svg>
+          </button>
+        )}
 
         {/* Export CSV Icon */}
         {wishlistCount > 0 && (
@@ -130,7 +180,7 @@ const NavActionButtons = ({
                 onKeyPress={(e) => e.key === "Enter" && handleCreateShare()}
               />
               <p className="text-xs text-gray-500 mt-2">
-                ℹ️ Only your game library will be shared (not your wishlist). The link will be public but not searchable.
+                ℹ️ Your complete game collection (library + wishlist) will be shared. Use the ❤️ button to share only your wishlist.
               </p>
             </div>
 
@@ -160,6 +210,69 @@ const NavActionButtons = ({
                   </>
                 ) : (
                   "Create Share Link"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Wishlist Share Modal */}
+      {showWishlistShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                ❤️ Share Your Wishlist
+              </h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Create a public, read-only link to share your game wishlist
+              </p>
+            </div>
+
+            <div className="px-6 py-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your name (will appear on the shared wishlist):
+              </label>
+              <input
+                type="text"
+                value={wishlistOwnerName}
+                onChange={(e) => setWishlistOwnerName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                placeholder="Enter your name"
+                onKeyPress={(e) => e.key === "Enter" && handleCreateWishlistShare()}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                ℹ️ Only your wishlist items will be shared ({wishlistCount} games). The link will be public but not searchable.
+              </p>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
+              <button
+                onClick={() => {
+                  setShowWishlistShareModal(false);
+                  setWishlistOwnerName("");
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateWishlistShare}
+                disabled={isCreatingWishlistShare || !wishlistOwnerName.trim()}
+                className={`px-4 py-2 text-sm font-medium rounded-md focus:ring-2 focus:outline-none ${
+                  isCreatingWishlistShare || !wishlistOwnerName.trim()
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
+                }`}
+              >
+                {isCreatingWishlistShare ? (
+                  <>
+                    <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  "Create Wishlist Link"
                 )}
               </button>
             </div>
