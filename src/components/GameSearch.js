@@ -191,7 +191,7 @@ const GameSearch = ({
     <div className="container mx-auto py-8 px-4">
       <div className="w-full max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto">
         <div className="relative">
-          <div className="flex items-center bg-white rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center bg-white rounded-lg border border-gray-300 shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
             <FontAwesomeIcon
               icon="search"
               className="text-gray-400 ml-3 sm:ml-4"
@@ -201,7 +201,7 @@ const GameSearch = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for games to add to your library..."
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base text-gray-700 bg-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 sm:px-4 py-2 ml-2 sm:py-3 text-sm sm:text-base text-gray-700 bg-transparent rounded-lg focus:outline-none"
             />
             {searchQuery && (
               <button
