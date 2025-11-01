@@ -158,6 +158,7 @@ function GameLibraryApp() {
     deleteNote,
     updateNote,
     updateMissingImages,
+    updateMissingInformation,
     toggleWishlist,
     createShareLink,
     createWishlistShareLink,
@@ -301,6 +302,7 @@ function GameLibraryApp() {
             onToggleManualForm={() => setShowManualForm(!showManualForm)}
             showManualForm={showManualForm}
             onUpdateMissingImages={updateMissingImages}
+            onUpdateMissingInformation={updateMissingInformation}
             hasGames={notes.length > 0}
             isUpdatingImages={isUpdatingImages}
             existingGames={notes}

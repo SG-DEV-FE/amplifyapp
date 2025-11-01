@@ -162,8 +162,13 @@ const GameForm = ({
   };
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.description) {
-      alert("Please fill in the game name and platform/description.");
+    // For new games, require name and description
+    // For editing games, require at least a name (description can be empty when just adding image)
+    if (!formData.name || (!editMode && !formData.description)) {
+      const message = editMode 
+        ? "Please provide a game name."
+        : "Please fill in the game name and platform/description.";
+      alert(message);
       return;
     }
 

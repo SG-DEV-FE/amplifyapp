@@ -673,6 +673,126 @@ export const useGameManagement = (
     }
   };
 
+  // Update missing information for games (publisher, genre, etc.)
+  const updateMissingInformation = async () => {
+    if (isUpdatingImages) return; // Prevent multiple operations
+
+    try {
+      setIsUpdatingImages(true); // Reuse the same loading state
+
+      // Find games with missing information (no rawgId or missing key fields)
+      const gamesWithMissingInfo = notes.filter(
+        (game) => 
+          !game.rawgId || 
+          !game.publisher || 
+          game.publisher === "Unknown" ||
+          !game.genre ||
+          !game.release_date
+      );
+
+      if (gamesWithMissingInfo.length === 0) {
+        if (onShowToast) {
+          onShowToast("All games already have complete information!", "error");
+        }
+        return;
+      }
+
+      if (onShowToast) {
+        onShowToast(`Updating information for ${gamesWithMissingInfo.length} games...`);
+      }
+
+      let updatedCount = 0;
+
+      for (const game of gamesWithMissingInfo) {
+        try {
+          // Search RAWG for this game to get complete details
+          const searchResponse = await fetch(
+            `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
+              game.name
+            )}&page_size=5`
+          );
+
+          if (!searchResponse.ok) {
+            continue;
+          }
+
+          const searchData = await searchResponse.json();
+          const searchResults = searchData.results || [];
+
+          // Find the best match
+          let bestMatch = searchResults.find(
+            (result) => result.name.toLowerCase() === game.name.toLowerCase()
+          );
+
+          if (!bestMatch && searchResults.length > 0) {
+            bestMatch = searchResults[0];
+          }
+
+          if (bestMatch) {
+            // Get detailed game information
+            const detailResponse = await fetch(
+              `${RAWG_BASE_URL}/games/${bestMatch.id}?key=${RAWG_API_KEY}`
+            );
+
+            if (detailResponse.ok) {
+              const detailData = await detailResponse.json();
+
+              // Prepare updated game data
+              const updatedGameData = {
+                ...game,
+                publisher: game.publisher && game.publisher !== "Unknown" 
+                  ? game.publisher 
+                  : detailData.publishers?.[0]?.name || "Unknown",
+                genre: game.genre || detailData.genres?.map((g) => g.name).join(", ") || "",
+                release_date: game.release_date || detailData.released || "",
+                rawgId: detailData.id,
+                // Only update image if game doesn't have one
+                image: game.image || detailData.background_image || ""
+              };
+
+              // Update the game in the database
+              await fetchWithAuth(`/api/games?id=${game.id}`, {
+                method: "PUT",
+                body: JSON.stringify(updatedGameData),
+              });
+
+              updatedCount++;
+            }
+          }
+
+          // Add delay to avoid rate limiting
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+          console.warn(`Error updating info for game ${game.name}:`, error);
+        }
+      }
+
+      if (updatedCount > 0) {
+        if (onShowToast) {
+          onShowToast(`Successfully updated information for ${updatedCount} games!`);
+        }
+        await fetchNotes(); // Refresh the games list
+      } else {
+        if (onShowToast) {
+          onShowToast(
+            "No additional information could be found for the games.",
+            "error"
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error updating missing information:", error);
+      if (onShowToast) {
+        onShowToast(
+          "Failed to update missing information. Please try again.",
+          "error"
+        );
+      }
+    } finally {
+      setIsUpdatingImages(false);
+    }
+  };
+
   // Toggle wishlist status for a game
   const toggleWishlist = async (note) => {
     try {
@@ -918,6 +1038,7 @@ export const useGameManagement = (
     deleteNote,
     updateNote,
     updateMissingImages,
+    updateMissingInformation,
     toggleWishlist,
     createShareLink,
     createWishlistShareLink,
