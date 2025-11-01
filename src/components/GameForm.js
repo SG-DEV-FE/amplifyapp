@@ -162,13 +162,25 @@ const GameForm = ({
   };
 
   const handleSubmit = async () => {
+    console.log('[GameForm] handleSubmit - formData:', formData);
+    console.log('[GameForm] handleSubmit - editingNote:', editingNote);
+    console.log('[GameForm] handleSubmit - editMode:', editMode);
+    
     // Trim whitespace from form data
     const trimmedName = formData.name?.trim();
     const trimmedDescription = formData.description?.trim();
     
+    // For edit mode, if form name is empty but editingNote has a name, use that
+    // This handles cases where form hasn't fully populated yet
+    const finalName = editMode && !trimmedName && editingNote?.name 
+      ? editingNote.name 
+      : trimmedName;
+    
+    console.log('[GameForm] handleSubmit - finalName:', finalName);
+    
     // For new games, require name and description
     // For editing games, require at least a name (description can be empty when just adding image)
-    if (!trimmedName || (!editMode && !trimmedDescription)) {
+    if (!finalName || (!editMode && !trimmedDescription)) {
       const message = editMode 
         ? "Please provide a game name."
         : "Please fill in the game name and platform/description.";
@@ -176,11 +188,20 @@ const GameForm = ({
       return;
     }
 
-    // Create clean form data with trimmed values
+    // Create clean form data with trimmed values and fallbacks
     const cleanFormData = {
       ...formData,
-      name: trimmedName,
-      description: trimmedDescription || formData.description
+      name: finalName,
+      description: trimmedDescription || formData.description,
+      // Ensure other fields have fallbacks from editingNote if needed
+      ...(editMode && editingNote && {
+        selectedPlatform: formData.selectedPlatform || editingNote.selectedPlatform,
+        genre: formData.genre || editingNote.genre,
+        publisher: formData.publisher || editingNote.publisher,
+        players: formData.players || editingNote.players,
+        releaseDate: formData.releaseDate || editingNote.release_date || editingNote.releaseDate,
+        isWishlisted: formData.isWishlisted !== undefined ? formData.isWishlisted : editingNote.isWishlisted
+      })
     };
 
     await onSubmit(cleanFormData, newImageUploaded);

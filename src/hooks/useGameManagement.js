@@ -489,7 +489,8 @@ export const useGameManagement = (
 
   // Edit function - updates an existing game
   const updateNote = async (formData, editingNote, newImageUploaded) => {
-    if (!formData.name || !formData.description) return;
+    // For updates, only require name (description can be empty)
+    if (!formData.name?.trim()) return;
 
     try {
       // If this note is an optimistic temp item, wait for the server to return the real item
@@ -531,12 +532,13 @@ export const useGameManagement = (
         }
       }
 
-      // If a new image was uploaded, delete the old one (only if it's a Netlify file)
-      if (
-        newImageUploaded &&
-        noteToUpdate.image &&
-        !noteToUpdate.image.startsWith("http")
-      ) {
+      // If image has changed and old image was a Netlify file, delete the old one
+      const imageHasChanged = formData.image && formData.image !== noteToUpdate.image;
+      const oldImageIsNetlifyFile = noteToUpdate.image && 
+        !noteToUpdate.image.startsWith("http") && 
+        noteToUpdate.image.includes("/");
+      
+      if (imageHasChanged && oldImageIsNetlifyFile) {
         try {
           await fetchWithAuth(
             `/api/images?file=${encodeURIComponent(noteToUpdate.image)}`,
@@ -546,6 +548,7 @@ export const useGameManagement = (
           );
         } catch (error) {
           // Error deleting old image, continue with update
+          console.warn("Could not delete old image:", error);
         }
       }
 
@@ -556,8 +559,9 @@ export const useGameManagement = (
         release_date: formData.releaseDate,
         players: parseInt(formData.players) || null,
         publisher: formData.publisher,
-        // Use new image if uploaded, otherwise keep original
-        image: newImageUploaded ? formData.image : noteToUpdate.image,
+        // Always use formData.image if provided, otherwise keep original
+        // This handles both file uploads and manual URL entries
+        image: formData.image || noteToUpdate.image,
         // Update selectedPlatform from form data
         selectedPlatform: formData.selectedPlatform,
         rawgId: noteToUpdate.rawgId || null,
