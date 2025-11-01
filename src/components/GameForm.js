@@ -86,10 +86,9 @@ const GameForm = ({
     if (editMode && editingNote) {
       console.log('[GameForm] Editing note:', editingNote);
       
-      const imageFileName =
-        editingNote.image && editingNote.image.includes("/")
-          ? editingNote.image.split("/").pop()
-          : editingNote.image;
+      // For editing, preserve the full image URL so users can see and edit it
+      // Whether it's an external URL or a Netlify stored image
+      const imageUrl = editingNote.image || "";
 
       const populatedData = {
         name: editingNote.name || "",
@@ -98,7 +97,7 @@ const GameForm = ({
         releaseDate: editingNote.release_date || editingNote.releaseDate || "",
         players: editingNote.players || "",
         publisher: editingNote.publisher || "",
-        image: imageFileName || "",
+        image: imageUrl,
         selectedPlatform: editingNote.selectedPlatform || null,
         isWishlisted: editingNote.isWishlisted || false,
       };
@@ -152,7 +151,8 @@ const GameForm = ({
 
       const result = await response.json();
 
-      setFormData({ ...formData, image: result.filename });
+      // The API returns fileName, not filename
+      setFormData({ ...formData, image: result.fileName });
       if (editMode) {
         setNewImageUploaded(true);
       }
@@ -162,9 +162,13 @@ const GameForm = ({
   };
 
   const handleSubmit = async () => {
+    // Trim whitespace from form data
+    const trimmedName = formData.name?.trim();
+    const trimmedDescription = formData.description?.trim();
+    
     // For new games, require name and description
     // For editing games, require at least a name (description can be empty when just adding image)
-    if (!formData.name || (!editMode && !formData.description)) {
+    if (!trimmedName || (!editMode && !trimmedDescription)) {
       const message = editMode 
         ? "Please provide a game name."
         : "Please fill in the game name and platform/description.";
@@ -172,7 +176,14 @@ const GameForm = ({
       return;
     }
 
-    await onSubmit(formData, newImageUploaded);
+    // Create clean form data with trimmed values
+    const cleanFormData = {
+      ...formData,
+      name: trimmedName,
+      description: trimmedDescription || formData.description
+    };
+
+    await onSubmit(cleanFormData, newImageUploaded);
     setFormData(initialFormState);
     setNewImageUploaded(false);
   };
@@ -418,14 +429,32 @@ const GameForm = ({
                     </div>
                   </div>
 
-                  {/* Image upload */}
+                  {/* Image URL or Upload */}
                   <div className="col-span-12">
-                    <label
-                      htmlFor="file-upload"
-                      className="block text-sm text-left font-medium text-gray-700 py-4"
-                    >
+                    <label className="block text-sm text-left font-medium text-gray-700 py-4">
                       Game / Title box art
                     </label>
+                    
+                    {/* Image URL Input */}
+                    <div className="mb-4">
+                      <label htmlFor="image-url" className="block text-xs text-left text-gray-500 mb-2">
+                        Image URL (optional)
+                      </label>
+                      <input
+                        type="url"
+                        onChange={(e) =>
+                          setFormData({ ...formData, image: e.target.value })
+                        }
+                        placeholder="https://example.com/image.jpg"
+                        value={formData.image}
+                        name="image-url"
+                        id="image-url"
+                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-3"
+                      />
+                    </div>
+                    
+                    {/* File Upload */}
+                    <div className="text-center text-sm text-gray-500 mb-2">OR</div>
                     <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                       <div className="space-y-1 text-left">
                         <svg
