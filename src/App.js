@@ -16,6 +16,7 @@ import GameLibrary from "./components/GameLibrary";
 import GameForm from "./components/GameForm";
 import GameModal from "./components/GameModal";
 import GamingPlatformLogos from "./components/GamingPlatformLogos";
+import ShareExportControls from "./components/ShareExportControls";
 import { useGameManagement } from "./hooks/useGameManagement";
 
 // Toast notification component
@@ -148,6 +149,7 @@ function GameLibraryApp() {
     notes,
     isUpdatingImages,
     deletingGameId,
+    shareLink,
     fetchNotes,
     addGameFromSearch,
     createNote,
@@ -155,6 +157,9 @@ function GameLibraryApp() {
     updateNote,
     updateMissingImages,
     toggleWishlist,
+    createShareLink,
+    exportWishlistCSV,
+    exportWishlistPDF,
   } = useGameManagement(user.id, showToast, showHeartNotification);
 
   useEffect(() => {
@@ -262,6 +267,17 @@ function GameLibraryApp() {
               Add games you own, want to play, or have completed!
             </p>
           </div>
+
+          {/* Share and Export Controls */}
+          {notes.length > 0 && (
+            <ShareExportControls
+              onShare={createShareLink}
+              onExportCSV={exportWishlistCSV}
+              onExportPDF={exportWishlistPDF}
+              wishlistCount={notes.filter(note => note.isWishlisted).length}
+              totalGames={notes.filter(note => !note.isWishlisted).length}
+            />
+          )}
 
           {/* Game Search Component */}
           <GameSearch

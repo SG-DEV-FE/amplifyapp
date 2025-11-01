@@ -54,6 +54,7 @@ export const useGameManagement = (
   const [notes, setNotes] = useState([]);
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
   const [deletingGameId, setDeletingGameId] = useState(null);
+  const [shareLink, setShareLink] = useState(null);
   // Map to track optimistic creates: tempId -> { promise, resolve, reject }
   const pendingCreatesRef = useRef(new Map());
 
@@ -687,10 +688,176 @@ export const useGameManagement = (
     }
   };
 
+  // Share library function
+  const createShareLink = async (ownerName) => {
+    try {
+      const response = await fetchWithAuth("/api/shared-library", {
+        method: "POST",
+        body: JSON.stringify({ ownerName }),
+      });
+
+      const data = await response.json();
+      setShareLink(data.shareUrl);
+      
+      if (onShowToast) {
+        onShowToast("Share link created! Link copied to clipboard.");
+      }
+      
+      // Copy to clipboard
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(data.shareUrl);
+      }
+      
+      return data.shareUrl;
+    } catch (error) {
+      console.error("Error creating share link:", error);
+      if (onShowToast) {
+        onShowToast("Failed to create share link. Please try again.", "error");
+      }
+    }
+  };
+
+  // Export wishlist as CSV
+  const exportWishlistCSV = () => {
+    try {
+      const wishlistGames = notes.filter(note => note.isWishlisted);
+      
+      if (wishlistGames.length === 0) {
+        if (onShowToast) {
+          onShowToast("No wishlist items to export.", "error");
+        }
+        return;
+      }
+
+      const csvHeaders = ["Game Name", "Platform", "Genre", "Release Date", "Publisher", "Players"];
+      const csvRows = [csvHeaders];
+
+      wishlistGames.forEach(game => {
+        csvRows.push([
+          game.name || "",
+          game.selectedPlatform?.name || "",
+          game.genre || "",
+          game.release_date || "",
+          game.publisher || "",
+          game.players || ""
+        ]);
+      });
+
+      const csvContent = csvRows.map(row => 
+        row.map(field => `"${(field || "").toString().replace(/"/g, '""')}"`).join(",")
+      ).join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `wishlist_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      if (onShowToast) {
+        onShowToast(`Wishlist exported! ${wishlistGames.length} games saved to CSV.`);
+      }
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      if (onShowToast) {
+        onShowToast("Failed to export wishlist. Please try again.", "error");
+      }
+    }
+  };
+
+  // Export wishlist as PDF (using HTML to PDF approach)
+  const exportWishlistPDF = () => {
+    try {
+      const wishlistGames = notes.filter(note => note.isWishlisted);
+      
+      if (wishlistGames.length === 0) {
+        if (onShowToast) {
+          onShowToast("No wishlist items to export.", "error");
+        }
+        return;
+      }
+
+      // Create HTML content for PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>My Game Wishlist</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #007bff; padding-bottom: 20px; }
+            .header h1 { color: #007bff; margin: 0; }
+            .header p { color: #666; margin: 10px 0 0 0; }
+            .game { margin-bottom: 25px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+            .game-title { font-size: 18px; font-weight: bold; color: #007bff; margin-bottom: 10px; }
+            .game-detail { margin: 5px 0; }
+            .label { font-weight: bold; color: #555; }
+            .footer { margin-top: 30px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px; }
+            @media print {
+              body { margin: 20px; }
+              .game { break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>🎮 My Game Wishlist</h1>
+            <p>Generated on ${new Date().toLocaleDateString()}</p>
+            <p>Total Games: ${wishlistGames.length}</p>
+          </div>
+          
+          ${wishlistGames.map((game, index) => `
+            <div class="game">
+              <div class="game-title">${index + 1}. ${game.name || 'Unknown Title'}</div>
+              ${game.selectedPlatform ? `<div class="game-detail"><span class="label">Platform:</span> ${game.selectedPlatform.name}</div>` : ''}
+              ${game.genre ? `<div class="game-detail"><span class="label">Genre:</span> ${game.genre}</div>` : ''}
+              ${game.release_date ? `<div class="game-detail"><span class="label">Release Date:</span> ${game.release_date}</div>` : ''}
+              ${game.publisher ? `<div class="game-detail"><span class="label">Publisher:</span> ${game.publisher}</div>` : ''}
+              ${game.players ? `<div class="game-detail"><span class="label">Players:</span> ${game.players}</div>` : ''}
+              ${game.description ? `<div class="game-detail"><span class="label">Description:</span> ${game.description}</div>` : ''}
+            </div>
+          `).join('')}
+          
+          <div class="footer">
+            <p>Generated by Game Library App • ${new Date().toLocaleString()}</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Open in new window for printing/saving as PDF
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      // Auto-focus and trigger print dialog
+      printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+      };
+
+      if (onShowToast) {
+        onShowToast(`Wishlist PDF opened! ${wishlistGames.length} games ready to print/save.`);
+      }
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      if (onShowToast) {
+        onShowToast("Failed to export wishlist PDF. Please try again.", "error");
+      }
+    }
+  };
+
   return {
     notes,
     isUpdatingImages,
     deletingGameId,
+    shareLink,
     fetchNotes,
     addGameFromSearch,
     createNote,
@@ -698,5 +865,8 @@ export const useGameManagement = (
     updateNote,
     updateMissingImages,
     toggleWishlist,
+    createShareLink,
+    exportWishlistCSV,
+    exportWishlistPDF,
   };
 };
