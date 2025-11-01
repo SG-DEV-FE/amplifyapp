@@ -74,6 +74,7 @@ const SharedLibrary = ({ shareId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPlatform, setSelectedPlatform] = useState("all");
+  const [showWishlist, setShowWishlist] = useState(true);
 
   // Fetch shared library data
   useEffect(() => {
@@ -117,10 +118,26 @@ const SharedLibrary = ({ shareId }) => {
     return platforms.sort((a, b) => a.name.localeCompare(b.name));
   }, [games]);
 
-  // Filter games by platform
+  // Filter games by platform and wishlist status
   const filteredGames = useMemo(() => {
-    const sortedGames = [...games].sort((a, b) => a.name.localeCompare(b.name));
+    let filtered = [...games];
     
+    // Filter by wishlist status (only for full library shares)
+    if (shareType === "full") {
+      if (showWishlist) {
+        // Show all games (library + wishlist)
+        filtered = games;
+      } else {
+        // Show only library games (exclude wishlist)
+        filtered = games.filter(game => !game.isWishlisted);
+      }
+    }
+    // For wishlist shares, always show all (they're all wishlisted anyway)
+    
+    // Sort alphabetically
+    const sortedGames = filtered.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Filter by platform
     if (selectedPlatform === "all") {
       return sortedGames;
     }
@@ -130,7 +147,7 @@ const SharedLibrary = ({ shareId }) => {
         note.selectedPlatform &&
         note.selectedPlatform.id === parseInt(selectedPlatform)
     );
-  }, [games, selectedPlatform]);
+  }, [games, selectedPlatform, showWishlist, shareType]);
 
   if (loading) {
     return (
@@ -188,7 +205,9 @@ const SharedLibrary = ({ shareId }) => {
               {shareType === "wishlist" ? (
                 <>Shared wishlist • {games.length} games wanted</>
               ) : (
-                <>Shared game collection • {games.length} games</>
+                <>Shared game collection • {
+                  showWishlist ? games.length : games.filter(g => !g.isWishlisted).length
+                } games {showWishlist ? "" : "(library only)"}</>
               )}
             </p>
             {shareType === "full" && (
@@ -207,6 +226,33 @@ const SharedLibrary = ({ shareId }) => {
           </div>
         </div>
       </div>
+
+      {/* Wishlist Filter - Only for full library shares */}
+      {shareType === "full" && games.some(game => game.isWishlisted) && (
+        <div className="w-full bg-black py-4 border-b border-gray-800">
+          <div className="container mx-auto flex justify-center px-4">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showWishlist}
+                onChange={(e) => setShowWishlist(e.target.checked)}
+                className="form-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="ml-2 text-white text-sm font-medium">
+                Include wishlist items (
+                {games.filter((game) => game.isWishlisted).length} games)
+              </span>
+              <svg
+                className="ml-2 w-4 h-4 text-red-500"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </label>
+          </div>
+        </div>
+      )}
 
       {/* Platform Filters */}
       {games.length > 0 && availablePlatforms.length > 0 && (
@@ -227,9 +273,16 @@ const SharedLibrary = ({ shareId }) => {
                   onChange={(e) => setSelectedPlatform(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="all">All Platforms ({games.length})</option>
+                  <option value="all">All Platforms ({
+                    shareType === "full" 
+                      ? (showWishlist ? games.length : games.filter(g => !g.isWishlisted).length)
+                      : games.length
+                  })</option>
                   {availablePlatforms.map((platform) => {
-                    const count = games.filter(
+                    const filteredByWishlist = shareType === "full" 
+                      ? (showWishlist ? games : games.filter(g => !g.isWishlisted))
+                      : games;
+                    const count = filteredByWishlist.filter(
                       (note) =>
                         note.selectedPlatform &&
                         note.selectedPlatform.id === platform.id
@@ -258,10 +311,17 @@ const SharedLibrary = ({ shareId }) => {
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
-                  All Platforms ({games.length})
+                  All Platforms ({
+                    shareType === "full" 
+                      ? (showWishlist ? games.length : games.filter(g => !g.isWishlisted).length)
+                      : games.length
+                  })
                 </button>
                 {availablePlatforms.map((platform) => {
-                  const count = games.filter(
+                  const filteredByWishlist = shareType === "full" 
+                    ? (showWishlist ? games : games.filter(g => !g.isWishlisted))
+                    : games;
+                  const count = filteredByWishlist.filter(
                     (note) =>
                       note.selectedPlatform &&
                       note.selectedPlatform.id === platform.id
