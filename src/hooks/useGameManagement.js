@@ -691,12 +691,15 @@ export const useGameManagement = (
   // Share library function
   const createShareLink = async (ownerName) => {
     try {
-      const response = await fetchWithAuth("/api/shared-library", {
+      console.log("[createShareLink] Creating share link for:", ownerName);
+      
+      const data = await fetchWithAuth("/api/shared-library", {
         method: "POST",
         body: JSON.stringify({ ownerName }),
       });
 
-      const data = await response.json();
+      console.log("[createShareLink] Success:", data);
+      
       setShareLink(data.shareUrl);
       
       if (onShowToast) {
@@ -706,14 +709,17 @@ export const useGameManagement = (
       // Copy to clipboard
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(data.shareUrl);
+      } else {
+        console.warn("[createShareLink] Clipboard API not available");
       }
       
       return data.shareUrl;
     } catch (error) {
-      console.error("Error creating share link:", error);
+      console.error("[createShareLink] Error creating share link:", error);
       if (onShowToast) {
-        onShowToast("Failed to create share link. Please try again.", "error");
+        onShowToast(`Failed to create share link: ${error.message}`, "error");
       }
+      throw error;
     }
   };
 

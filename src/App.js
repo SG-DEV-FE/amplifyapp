@@ -17,6 +17,7 @@ import GameForm from "./components/GameForm";
 import GameModal from "./components/GameModal";
 import GamingPlatformLogos from "./components/GamingPlatformLogos";
 import ShareExportControls from "./components/ShareExportControls";
+import NavActionButtons from "./components/NavActionButtons";
 import PersistentLoginStatus from "./components/PersistentLoginStatus";
 import { useGameManagement } from "./hooks/useGameManagement";
 
@@ -232,6 +233,17 @@ function GameLibraryApp() {
                 )}
               </div>
 
+              {/* Action Buttons */}
+              {notes.length > 0 && (
+                <NavActionButtons
+                  onShare={createShareLink}
+                  onExportCSV={exportWishlistCSV}
+                  onExportPDF={exportWishlistPDF}
+                  wishlistCount={notes.filter(note => note.isWishlisted).length}
+                  totalGames={notes.filter(note => !note.isWishlisted).length}
+                />
+              )}
+
               <button
                 onClick={signOut}
                 className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm"
@@ -239,7 +251,18 @@ function GameLibraryApp() {
                 Sign Out
               </button>
             </div>
-            <div className="-mr-2 flex md:hidden">
+            <div className="-mr-2 flex md:hidden items-center space-x-2">
+              {/* Action Buttons for Mobile */}
+              {notes.length > 0 && (
+                <NavActionButtons
+                  onShare={createShareLink}
+                  onExportCSV={exportWishlistCSV}
+                  onExportPDF={exportWishlistPDF}
+                  wishlistCount={notes.filter(note => note.isWishlisted).length}
+                  totalGames={notes.filter(note => !note.isWishlisted).length}
+                />
+              )}
+
               <button
                 onClick={signOut}
                 className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm"
@@ -273,17 +296,6 @@ function GameLibraryApp() {
               Add games you own, want to play, or have completed!
             </p>
           </div>
-
-          {/* Share and Export Controls */}
-          {notes.length > 0 && (
-            <ShareExportControls
-              onShare={createShareLink}
-              onExportCSV={exportWishlistCSV}
-              onExportPDF={exportWishlistPDF}
-              wishlistCount={notes.filter(note => note.isWishlisted).length}
-              totalGames={notes.filter(note => !note.isWishlisted).length}
-            />
-          )}
 
           {/* Game Search Component */}
           <GameSearch
