@@ -7,7 +7,7 @@ const GameCard = ({
   onEdit,
   onDelete,
   onToggleWishlist,
-  isDeletingGame,
+  deletingGameId,
 }) => {
   const handleImageError = (e) => {
     e.target.src = psLogo;
@@ -81,13 +81,13 @@ const GameCard = ({
       <h2 className="py-3 text-white">{note.name}</h2>
 
       {/* Platform badge */}
-      {note.selectedPlatform && (
+      {/* {note.selectedPlatform && (
         <div className="mb-3 flex justify-center">
           <span className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full">
             {note.selectedPlatform.name}
           </span>
         </div>
-      )}
+      )} */}
 
       <div className="flex flex-wrap justify-center gap-2">
         <button
@@ -107,14 +107,14 @@ const GameCard = ({
         <button
           type="button"
           className={`px-4 py-2 text-white rounded-full shadow-sm focus:ring-2 focus:ring-300 ${
-            isDeletingGame
+            deletingGameId === note.id
               ? "bg-gray-400 cursor-not-allowed"
               : "bg-red-500 hover:bg-red-300"
           }`}
           onClick={() => onDelete(note)}
-          disabled={isDeletingGame}
+          disabled={deletingGameId === note.id}
         >
-          {isDeletingGame ? (
+          {deletingGameId === note.id ? (
             <>
               <div className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
               Deleting...
@@ -134,7 +134,7 @@ const GameLibrary = ({
   onEdit,
   onDelete,
   onToggleWishlist,
-  isDeletingGame = false,
+  deletingGameId = null,
 }) => {
   const [selectedPlatform, setSelectedPlatform] = useState("all");
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
@@ -342,7 +342,7 @@ const GameLibrary = ({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onToggleWishlist={onToggleWishlist}
-                isDeletingGame={isDeletingGame}
+                deletingGameId={deletingGameId}
               />
             ))}
           </div>

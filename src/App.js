@@ -147,7 +147,7 @@ function GameLibraryApp() {
   const {
     notes,
     isUpdatingImages,
-    isDeletingGame,
+    deletingGameId,
     fetchNotes,
     addGameFromSearch,
     createNote,
@@ -281,7 +281,7 @@ function GameLibraryApp() {
             onEdit={handleEdit}
             onDelete={deleteNote}
             onToggleWishlist={toggleWishlist}
-            isDeletingGame={isDeletingGame}
+            deletingGameId={deletingGameId}
           />
 
           {/* Game Modal Component */}

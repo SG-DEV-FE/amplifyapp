@@ -53,7 +53,7 @@ export const useGameManagement = (
 ) => {
   const [notes, setNotes] = useState([]);
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
-  const [isDeletingGame, setIsDeletingGame] = useState(false);
+  const [deletingGameId, setDeletingGameId] = useState(null);
   // Map to track optimistic creates: tempId -> { promise, resolve, reject }
   const pendingCreatesRef = useRef(new Map());
 
@@ -403,7 +403,7 @@ export const useGameManagement = (
       return;
     }
 
-    if (isDeletingGame) {
+    if (deletingGameId) {
       if (onShowToast) {
         onShowToast(
           "Please wait - another game is currently being deleted.",
@@ -413,12 +413,15 @@ export const useGameManagement = (
       return;
     }
 
-    setIsDeletingGame(true);
+    setDeletingGameId(noteToDelete.id);
 
     // Store original notes for error recovery
     const originalNotes = [...notes];
 
     try {
+      // Immediately remove the game from UI for instant feedback
+      setNotes(prevNotes => prevNotes.filter(note => note.id !== noteToDelete.id));
+
       // Delete the game from the database
       await fetchWithAuth(`/api/games?id=${noteToDelete.id}`, {
         method: "DELETE",
@@ -438,27 +441,32 @@ export const useGameManagement = (
         }
       }
 
-      // Refresh the games list to ensure consistency
-      await fetchNotes();
-
-      // Show success message
+      // Show success message with platform information
+      const platformText = noteToDelete.selectedPlatform
+        ? ` for ${noteToDelete.selectedPlatform.name}`
+        : "";
       if (onShowToast) {
         onShowToast(
-          `"${noteToDelete.name}" has been successfully deleted from your library.`
+          `"${noteToDelete.name}"${platformText} has been successfully deleted from your ${
+            noteToDelete.isWishlisted ? "wishlist" : "library"
+          }!`
         );
       }
     } catch (error) {
       // Restore the original notes on error
       setNotes(originalNotes);
 
+      const platformText = noteToDelete.selectedPlatform
+        ? ` for ${noteToDelete.selectedPlatform.name}`
+        : "";
       if (onShowToast) {
         onShowToast(
-          `Failed to delete "${noteToDelete.name}". Please try again.`,
+          `Failed to delete "${noteToDelete.name}"${platformText}. Please try again.`,
           "error"
         );
       }
     } finally {
-      setIsDeletingGame(false);
+      setDeletingGameId(null);
     }
   };
 
@@ -682,7 +690,7 @@ export const useGameManagement = (
   return {
     notes,
     isUpdatingImages,
-    isDeletingGame,
+    deletingGameId,
     fetchNotes,
     addGameFromSearch,
     createNote,
