@@ -37,6 +37,24 @@ const SharedGameCard = ({ note }) => {
             </div>
           </div>
         )}
+        {/* Wishlist Heart Indicator - Non-interactive */}
+        {note.isWishlisted && (
+          <div className="absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-75">
+            <svg
+              className="w-5 h-5 text-red-500"
+              fill="currentColor"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+          </div>
+        )}
         {note.selectedPlatform && (
           <div className="absolute bottom-2 left-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
             {note.selectedPlatform.name}
@@ -163,6 +181,14 @@ const SharedLibrary = ({ shareId }) => {
             <p className="text-gray-400">
               Shared game collection • {games.length} games
             </p>
+            <div className="mt-2 flex justify-center gap-4 text-sm">
+              <span className="text-blue-400">
+                📚 {games.filter(g => !g.isWishlisted).length} in library
+              </span>
+              <span className="text-red-400">
+                ❤️ {games.filter(g => g.isWishlisted).length} wishlisted
+              </span>
+            </div>
             <div className="mt-4 text-xs text-gray-500">
               🎮 Read-only view • This is a shared library
             </div>

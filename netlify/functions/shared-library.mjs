@@ -25,9 +25,8 @@ const handler = async (req, context) => {
       const userKey = `user_${shareData.userId}`;
       const games = (await gamesStore.get(userKey, { type: "json" })) || [];
       
-      // Filter out sensitive data and only show library items (not wishlist)
+      // Filter out sensitive data and include all games (library + wishlist)
       const publicGames = games
-        .filter(game => !game.isWishlisted)
         .map(game => ({
           id: game.id,
           name: game.name,
@@ -38,7 +37,7 @@ const handler = async (req, context) => {
           publisher: game.publisher,
           image: game.image,
           selectedPlatform: game.selectedPlatform,
-          isWishlisted: false
+          isWishlisted: game.isWishlisted || false
         }));
 
       return new Response(JSON.stringify({
