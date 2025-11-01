@@ -18,6 +18,7 @@ import GameModal from "./components/GameModal";
 import GamingPlatformLogos from "./components/GamingPlatformLogos";
 import ShareExportControls from "./components/ShareExportControls";
 import NavActionButtons from "./components/NavActionButtons";
+import SharedLibrary from "./components/SharedLibrary";
 import { useGameManagement } from "./hooks/useGameManagement";
 
 // Toast notification component
@@ -351,6 +352,29 @@ function GameLibraryApp() {
 // Main App Component with Authentication
 export default function App() {
   const { user, loading } = useAuth();
+
+  // Check if this is a shared library URL
+  const currentPath = window.location.pathname;
+  const isSharedLibrary = currentPath.startsWith('/shared/');
+  
+  if (isSharedLibrary) {
+    // Extract shareId from URL path like /shared/abc123-def456
+    const shareId = currentPath.split('/shared/')[1];
+    
+    if (shareId) {
+      return <SharedLibrary shareId={shareId} />;
+    } else {
+      // Invalid shared URL
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-black">
+          <div className="text-center text-white">
+            <h2 className="text-2xl font-bold mb-4">Invalid Share Link</h2>
+            <p className="text-gray-400">The shared library link is not valid.</p>
+          </div>
+        </div>
+      );
+    }
+  }
 
   // Show login screen if not authenticated
   if (!user && !loading) {
