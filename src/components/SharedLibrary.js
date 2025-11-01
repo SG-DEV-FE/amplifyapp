@@ -8,13 +8,13 @@ const SharedGameCard = ({ note }) => {
   };
 
   return (
-    <div className="w-full max-w-64 mx-auto py-5 cursor-default">
+    <div className="w-full max-w-64 mx-auto py-5">
       <div className="relative">
         {note.image ? (
           <img
             src={note.image}
             alt={note.name}
-            className="w-full h-64 object-cover rounded cursor-default"
+            className="w-full h-64 object-cover rounded"
             onError={handleImageError}
           />
         ) : (
@@ -44,7 +44,7 @@ const SharedGameCard = ({ note }) => {
         )}
       </div>
 
-      <h2 className="py-3 text-white text-center cursor-default">{note.name}</h2>
+      <h2 className="py-3 text-white text-center">{note.name}</h2>
     </div>
   );
 };
@@ -214,7 +214,7 @@ const SharedLibrary = ({ shareId }) => {
               <div className="flex flex-wrap justify-center gap-2">
                 <button
                   onClick={() => setSelectedPlatform("all")}
-                  className={`px-4 py-2 text-sm rounded-full transition-colors ${
+                  className={`px-4 py-2 text-sm rounded-full transition-colors cursor-pointer ${
                     selectedPlatform === "all"
                       ? "bg-blue-600 text-white"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
@@ -234,7 +234,7 @@ const SharedLibrary = ({ shareId }) => {
                       onClick={() =>
                         setSelectedPlatform(platform.id.toString())
                       }
-                      className={`px-4 py-2 text-sm rounded-full transition-colors ${
+                      className={`px-4 py-2 text-sm rounded-full transition-colors cursor-pointer ${
                         selectedPlatform === platform.id.toString()
                           ? "bg-blue-600 text-white"
                           : "bg-gray-700 text-gray-300 hover:bg-gray-600"

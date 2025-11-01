@@ -19,13 +19,13 @@ const GameCard = ({
   };
 
   return (
-    <div className="w-full max-w-64 mx-auto py-5 cursor-default">
+    <div className="w-full max-w-64 mx-auto py-5">
       <div className="relative">
         {note.image ? (
           <img
             src={note.image}
             alt={note.name}
-            className="w-full h-64 object-cover rounded cursor-default"
+            className="w-full h-64 object-cover rounded"
             onLoad={handleImageLoad}
             onError={handleImageError}
           />
@@ -72,13 +72,13 @@ const GameCard = ({
           </svg>
         </button>
         {note.selectedPlatform && (
-          <div className="absolute bottom-2 left-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded cursor-default">
+          <div className="absolute bottom-2 left-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
             {note.selectedPlatform.name}
           </div>
         )}
       </div>
 
-      <h2 className="py-3 text-white cursor-default">{note.name}</h2>
+      <h2 className="py-3 text-white">{note.name}</h2>
 
       {/* Platform badge */}
       {/* {note.selectedPlatform && (
@@ -92,14 +92,14 @@ const GameCard = ({
       <div className="flex flex-wrap justify-center gap-2">
         <button
           type="button"
-          className="px-4 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300"
+          className="px-4 py-2 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-300 focus:ring-2 focus:ring-300 cursor-pointer"
           onClick={() => onViewInfo(note)}
         >
           View Info
         </button>
         <button
           type="button"
-          className="px-4 py-2 bg-green-500 text-white rounded-full shadow-sm hover:bg-green-300 focus:ring-2 focus:ring-300"
+          className="px-4 py-2 bg-green-500 text-white rounded-full shadow-sm hover:bg-green-300 focus:ring-2 focus:ring-300 cursor-pointer"
           onClick={() => onEdit(note)}
         >
           Edit
@@ -109,7 +109,7 @@ const GameCard = ({
           className={`px-4 py-2 text-white rounded-full shadow-sm focus:ring-2 focus:ring-300 ${
             deletingGameId === note.id
               ? "bg-gray-400 cursor-not-allowed"
-              : "bg-red-500 hover:bg-red-300"
+              : "bg-red-500 hover:bg-red-300 cursor-pointer"
           }`}
           onClick={() => onDelete(note)}
           disabled={deletingGameId === note.id}
