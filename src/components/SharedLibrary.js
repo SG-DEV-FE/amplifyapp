@@ -45,14 +45,6 @@ const SharedGameCard = ({ note }) => {
       </div>
 
       <h2 className="py-3 text-white text-center cursor-default">{note.name}</h2>
-      
-      {/* Game Details */}
-      <div className="text-center text-gray-300 text-sm space-y-1">
-        {note.genre && <p><span className="text-gray-400">Genre:</span> {note.genre}</p>}
-        {note.release_date && <p><span className="text-gray-400">Released:</span> {note.release_date}</p>}
-        {note.publisher && <p><span className="text-gray-400">Publisher:</span> {note.publisher}</p>}
-        {note.players && <p><span className="text-gray-400">Players:</span> {note.players}</p>}
-      </div>
     </div>
   );
 };
