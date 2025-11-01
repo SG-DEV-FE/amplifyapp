@@ -84,22 +84,27 @@ const GameForm = ({
   // Update form data when editing
   useEffect(() => {
     if (editMode && editingNote) {
+      console.log('[GameForm] Editing note:', editingNote);
+      
       const imageFileName =
         editingNote.image && editingNote.image.includes("/")
           ? editingNote.image.split("/").pop()
           : editingNote.image;
 
-      setFormData({
-        name: editingNote.name,
-        description: editingNote.description,
+      const populatedData = {
+        name: editingNote.name || "",
+        description: editingNote.description || "",
         genre: editingNote.genre || "",
-        releaseDate: editingNote.release_date || "",
+        releaseDate: editingNote.release_date || editingNote.releaseDate || "",
         players: editingNote.players || "",
         publisher: editingNote.publisher || "",
         image: imageFileName || "",
         selectedPlatform: editingNote.selectedPlatform || null,
         isWishlisted: editingNote.isWishlisted || false,
-      });
+      };
+      
+      console.log('[GameForm] Setting form data:', populatedData);
+      setFormData(populatedData);
       setNewImageUploaded(false);
     } else {
       setFormData(initialFormState);
@@ -214,6 +219,29 @@ const GameForm = ({
                         name="title-name"
                         id="title-name"
                         className="focus:ring-indigo-500 focus:border-indigo-500 flex-1 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-2"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Game Description */}
+                  <div className="col-span-12">
+                    <label
+                      htmlFor="description"
+                      className="block text-sm text-left font-medium text-gray-700 py-4"
+                    >
+                      Description
+                    </label>
+                    <div className="mt-1">
+                      <textarea
+                        onChange={(e) =>
+                          setFormData({ ...formData, description: e.target.value })
+                        }
+                        placeholder="Game description..."
+                        value={formData.description}
+                        name="description"
+                        id="description"
+                        rows="3"
+                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full rounded-md sm:text-sm border-gray-300 py-2 px-3"
                       />
                     </div>
                   </div>
