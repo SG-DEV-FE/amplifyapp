@@ -114,6 +114,7 @@ function GameLibraryApp() {
   const [editMode, setEditMode] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [savedScrollPosition, setSavedScrollPosition] = useState(0);
 
   // Toast notification helper
   const [toast, setToast] = useState({
@@ -185,6 +186,8 @@ function GameLibraryApp() {
       setEditingNote(null);
       setEditMode(false);
       setShowManualForm(false);
+      // Restore scroll position after editing
+      restoreScrollPosition();
     } else {
       await createNote(formData);
       setShowManualForm(false);
@@ -195,9 +198,16 @@ function GameLibraryApp() {
     setEditingNote(null);
     setEditMode(false);
     setShowManualForm(false);
+    // Restore scroll position when canceling edit
+    if (editMode) {
+      restoreScrollPosition();
+    }
   };
 
   const handleEdit = (note) => {
+    // Save current scroll position before opening edit form
+    setSavedScrollPosition(window.scrollY);
+    
     setEditingNote(note);
     setEditMode(true);
     setShowManualForm(true);
@@ -206,6 +216,16 @@ function GameLibraryApp() {
       document
         .getElementById("game-form")
         ?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
+
+  // Helper function to restore scroll position after form operations
+  const restoreScrollPosition = () => {
+    setTimeout(() => {
+      window.scrollTo({
+        top: savedScrollPosition,
+        behavior: "smooth"
+      });
     }, 100);
   };
 
