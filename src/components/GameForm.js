@@ -151,8 +151,8 @@ const GameForm = ({
 
       const result = await response.json();
 
-      // The API returns fileName, not filename
-      setFormData({ ...formData, image: result.fileName });
+      // Use the full URL returned by the API, not just the fileName
+      setFormData({ ...formData, image: result.url });
       if (editMode) {
         setNewImageUploaded(true);
       }

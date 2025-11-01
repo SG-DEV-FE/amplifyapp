@@ -51,7 +51,7 @@ const handler = async (req, context) => {
       return new Response(
         JSON.stringify({
           fileName: fileName,
-          url: `/.netlify/images/${fileName}`,
+          url: `/api/images?file=${encodeURIComponent(fileName)}`,
         }),
         {
           status: 201,
