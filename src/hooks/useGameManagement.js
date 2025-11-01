@@ -702,6 +702,7 @@ export const useGameManagement = (
       }
 
       let updatedCount = 0;
+      const updatedGames = [];
 
       for (const game of gamesWithMissingInfo) {
         try {
@@ -751,12 +752,15 @@ export const useGameManagement = (
               };
 
               // Update the game in the database
-              await fetchWithAuth(`/api/games?id=${game.id}`, {
+              const updateResponse = await fetchWithAuth(`/api/games?id=${game.id}`, {
                 method: "PUT",
                 body: JSON.stringify(updatedGameData),
               });
 
-              updatedCount++;
+              if (updateResponse) {
+                updatedCount++;
+                updatedGames.push(updatedGameData);
+              }
             }
           }
 
@@ -767,11 +771,14 @@ export const useGameManagement = (
         }
       }
 
+      // Always refresh the games list to ensure UI is up to date
+      await fetchNotes();
+
+      // Show appropriate success/error message
       if (updatedCount > 0) {
         if (onShowToast) {
           onShowToast(`Successfully updated information for ${updatedCount} games!`);
         }
-        await fetchNotes(); // Refresh the games list
       } else {
         if (onShowToast) {
           onShowToast(
