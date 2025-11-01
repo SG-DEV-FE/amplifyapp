@@ -359,6 +359,7 @@ const GameSearch = ({
               ? "Hide manual form"
               : "Can't find your game? Add it manually"}
           </button>
+          <div className="flex flex-row align-baseline justify-center items-center gap-2">
 
           {hasGames && (
             <button
@@ -380,7 +381,6 @@ const GameSearch = ({
               )}
             </button>
           )}
-          <div className="flex align-baseline justify-center items-center gap-2">
           {hasGames && (
             <button
               onClick={onUpdateMissingInformation}
