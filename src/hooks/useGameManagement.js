@@ -125,30 +125,46 @@ export const useGameManagement = (
   // Add game from search results
   const addGameFromSearch = async (game) => {
     try {
+      // Fetch complete game details from RAWG API to get publisher info
+      let completeGameData = game;
+      if (game.id && (!game.publishers || game.publishers.length === 0)) {
+        try {
+          const detailResponse = await fetch(
+            `${RAWG_BASE_URL}/games/${game.id}?key=${RAWG_API_KEY}`
+          );
+          if (detailResponse.ok) {
+            completeGameData = await detailResponse.json();
+          }
+        } catch (err) {
+          console.warn("Failed to fetch complete game data:", err);
+          // Continue with original data if detail fetch fails
+        }
+      }
+
       // Format the game data from RAWG API
       const gameData = {
-        name: game.name,
+        name: completeGameData.name,
         // If a specific platform was selected, use it; otherwise use all platforms
         description: game.selectedPlatform
           ? game.selectedPlatform.name
-          : game.platforms?.map((p) => p.platform.name).join(", ") ||
+          : completeGameData.platforms?.map((p) => p.platform.name).join(", ") ||
             "Multiple Platforms",
-        genre: game.genres?.map((g) => g.name).join(", ") || "",
-        release_date: game.released || "",
-        players: game.tags?.find((tag) => tag.name.includes("Multiplayer"))
+        genre: completeGameData.genres?.map((g) => g.name).join(", ") || "",
+        release_date: completeGameData.released || "",
+        players: completeGameData.tags?.find((tag) => tag.name.includes("Multiplayer"))
           ? 2
           : 1,
-        publisher: game.publishers?.[0]?.name || "Unknown",
+        publisher: completeGameData.publishers?.[0]?.name || "Unknown",
         image: "",
         // Store the selected platform information
         selectedPlatform: game.selectedPlatform || null,
-        rawgId: game.id, // Store original RAWG ID
+        rawgId: completeGameData.id, // Store original RAWG ID
         isWishlisted: game.isWishlisted || false, // Add wishlist status
       };
 
       // Store the RAWG image URL directly
-      if (game.background_image) {
-        gameData.image = game.background_image;
+      if (completeGameData.background_image) {
+        gameData.image = completeGameData.background_image;
       }
       // Optimistic update: add a temporary note so the UI updates instantly
       const tempId = `tmp-${Date.now()}`;
