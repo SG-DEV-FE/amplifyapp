@@ -238,7 +238,7 @@ const SharedLibrary = ({ shareId }) => {
     <div className="bg-black min-h-screen">
       {/* Header */}
       <div className="bg-gray-900 border-b border-gray-800">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container justify-center mx-auto px-4 py-6">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-white mb-2">
               {shareType === "wishlist" ? (
