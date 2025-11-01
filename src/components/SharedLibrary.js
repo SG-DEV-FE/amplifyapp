@@ -8,13 +8,13 @@ const SharedGameCard = ({ note }) => {
   };
 
   return (
-    <div className="w-full max-w-64 mx-auto py-5">
+    <div className="w-full max-w-64 mx-auto py-5 cursor-default">
       <div className="relative">
         {note.image ? (
           <img
             src={note.image}
             alt={note.name}
-            className="w-full h-64 object-cover rounded"
+            className="w-full h-64 object-cover rounded cursor-default"
             onError={handleImageError}
           />
         ) : (
@@ -44,7 +44,7 @@ const SharedGameCard = ({ note }) => {
         )}
       </div>
 
-      <h2 className="py-3 text-white text-center">{note.name}</h2>
+      <h2 className="py-3 text-white text-center cursor-default">{note.name}</h2>
       
       {/* Game Details */}
       <div className="text-center text-gray-300 text-sm space-y-1">
