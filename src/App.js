@@ -18,7 +18,6 @@ import GameModal from "./components/GameModal";
 import GamingPlatformLogos from "./components/GamingPlatformLogos";
 import ShareExportControls from "./components/ShareExportControls";
 import NavActionButtons from "./components/NavActionButtons";
-import PersistentLoginStatus from "./components/PersistentLoginStatus";
 import { useGameManagement } from "./hooks/useGameManagement";
 
 // Toast notification component
@@ -276,11 +275,6 @@ function GameLibraryApp() {
 
       <main>
         <div className="App">
-          {/* Persistent Login Status */}
-          <div className="container mx-auto px-4 pt-4">
-            <PersistentLoginStatus />
-          </div>
-
           {/* Header */}
           <div className="container flex justify-center align-center flex-col py-8 mx-auto">
             <h1 className="text-2xl text-slate-800">
