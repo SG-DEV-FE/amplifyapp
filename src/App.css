@@ -90,7 +90,6 @@
 .container {
   display: flex;
   align-items: center;
-  cursor: pointer;
   margin-top: -0.25em;
   margin-bottom: -0.25em;
 }
