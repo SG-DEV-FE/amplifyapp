@@ -9,6 +9,7 @@ const Login = () => {
     password: "",
     confirmPassword: "",
   });
+  const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -56,7 +57,7 @@ const Login = () => {
     try {
       let result;
       if (isLogin) {
-        result = await signIn(formData.email, formData.password);
+        result = await signIn(formData.email, formData.password, rememberMe);
       } else {
         result = await signUp(formData.email, formData.password);
       }
@@ -226,6 +227,26 @@ const Login = () => {
               }`}
             >
               <p className="text-sm">{message}</p>
+            </div>
+          )}
+
+          {/* Remember Me checkbox - only show for login */}
+          {isLogin && (
+            <div className="flex items-center">
+              <input
+                id="rememberMe"
+                name="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
+                Remember me for 90 days
+                <span className="text-xs text-gray-500 block">
+                  Stay logged in on this device
+                </span>
+              </label>
             </div>
           )}
 
