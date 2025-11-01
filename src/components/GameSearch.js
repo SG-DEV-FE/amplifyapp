@@ -3,6 +3,50 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 // import { isMobile } from "react-device-detect"; (barcode scanner removed)
 import psLogo from "../ps-logo.svg";
 
+// Shimmer placeholder component
+const ShimmerImage = ({ width = "w-16", height = "h-16", className = "" }) => (
+  <div className={`${width} ${height} bg-gray-200 rounded animate-pulse relative overflow-hidden ${className}`}>
+    <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-shimmer"></div>
+  </div>
+);
+
+// Game image component with loading state
+const GameImage = ({ src, alt, className, fallbackSrc = psLogo }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [imgSrc, setImgSrc] = useState(src);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setHasError(false);
+    setImgSrc(src);
+  }, [src]);
+
+  const handleLoad = () => {
+    setIsLoading(false);
+  };
+
+  const handleError = () => {
+    setIsLoading(false);
+    setHasError(true);
+    setImgSrc(fallbackSrc);
+  };
+
+  return (
+    <div className="relative">
+      {isLoading && <ShimmerImage className={className} />}
+      <img
+        src={imgSrc}
+        alt={alt}
+        className={`${className} ${isLoading ? 'opacity-0 absolute' : 'opacity-100'} transition-opacity duration-300`}
+        onLoad={handleLoad}
+        onError={handleError}
+        style={{ display: isLoading ? 'none' : 'block' }}
+      />
+    </div>
+  );
+};
+
 const RAWG_API_KEY = process.env.REACT_APP_RAWG_API_KEY || "";
 const RAWG_BASE_URL = "https://api.rawg.io/api";
 
@@ -191,13 +235,11 @@ const GameSearch = ({
                         isAdded ? "bg-green-50" : "hover:bg-gray-50"
                       }`}
                     >
-                      <img
-                        src={game.background_image || psLogo}
+                      <GameImage
+                        src={game.background_image}
                         alt={game.name}
                         className="w-16 h-16 object-cover rounded"
-                        onError={(e) => {
-                          e.target.src = psLogo;
-                        }}
+                        fallbackSrc={psLogo}
                       />
                       <div className="ml-4 flex-1">
                         <div className="flex items-center">

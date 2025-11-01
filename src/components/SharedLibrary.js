@@ -1,6 +1,73 @@
 import React, { useState, useEffect, useMemo } from "react";
 import psLogo from "../ps-logo.svg";
 
+// Shimmer placeholder component
+const ShimmerImage = ({ width = "w-full", height = "h-64", className = "" }) => (
+  <div className={`${width} ${height} bg-gray-200 rounded animate-pulse relative overflow-hidden ${className}`}>
+    <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-shimmer"></div>
+  </div>
+);
+
+// Game image component with loading state
+const GameImage = ({ src, alt, className, fallbackSrc = psLogo }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [imgSrc, setImgSrc] = useState(src);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setHasError(false);
+    setImgSrc(src);
+  }, [src]);
+
+  const handleLoad = () => {
+    setIsLoading(false);
+  };
+
+  const handleError = () => {
+    setIsLoading(false);
+    setHasError(true);
+    setImgSrc(fallbackSrc);
+  };
+
+  if (!src) {
+    return (
+      <div className="w-full h-64 bg-gray-300 rounded flex items-center justify-center">
+        <div className="text-center text-gray-500">
+          <svg
+            className="mx-auto h-12 w-12 text-gray-400 mb-2"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2h12a2 2 0 002 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p className="text-xs">No Image</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {isLoading && <ShimmerImage className={className} />}
+      <img
+        src={imgSrc}
+        alt={alt}
+        className={`${className} ${isLoading ? 'opacity-0 absolute' : 'opacity-100'} transition-opacity duration-300`}
+        onLoad={handleLoad}
+        onError={handleError}
+        style={{ display: isLoading ? 'none' : 'block' }}
+      />
+    </div>
+  );
+};
+
 const SharedGameCard = ({ note }) => {
   const handleImageError = (e) => {
     e.target.src = psLogo;
@@ -10,33 +77,12 @@ const SharedGameCard = ({ note }) => {
   return (
     <div className="w-full max-w-64 mx-auto py-5">
       <div className="relative">
-        {note.image ? (
-          <img
-            src={note.image}
-            alt={note.name}
-            className="w-full h-64 object-cover rounded"
-            onError={handleImageError}
-          />
-        ) : (
-          <div className="w-full h-64 bg-gray-300 rounded flex items-center justify-center">
-            <div className="text-center text-gray-500">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400 mb-2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <p className="text-xs">No Image</p>
-            </div>
-          </div>
-        )}
+        <GameImage
+          src={note.image}
+          alt={note.name}
+          className="w-full h-64 object-cover rounded"
+          fallbackSrc={psLogo}
+        />
         {/* Wishlist Heart Indicator - Non-interactive */}
         {note.isWishlisted && (
           <div className="absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-75">
