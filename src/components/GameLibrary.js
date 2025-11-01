@@ -19,13 +19,13 @@ const GameCard = ({
   };
 
   return (
-    <div className="w-full max-w-64 mx-auto py-5">
+    <div className="w-full max-w-64 mx-auto py-5 cursor-default">
       <div className="relative">
         {note.image ? (
           <img
             src={note.image}
             alt={note.name}
-            className="w-full h-64 object-cover rounded"
+            className="w-full h-64 object-cover rounded cursor-default"
             onLoad={handleImageLoad}
             onError={handleImageError}
           />
@@ -52,7 +52,7 @@ const GameCard = ({
         {/* Wishlist Heart Icon */}
         <button
           onClick={() => onToggleWishlist(note)}
-          className="absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 transition-all duration-200"
+          className="absolute top-2 right-2 p-2 rounded-full bg-black bg-opacity-50 hover:bg-opacity-75 transition-all duration-200 cursor-pointer"
           title={note.isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
           <svg
@@ -72,13 +72,13 @@ const GameCard = ({
           </svg>
         </button>
         {note.selectedPlatform && (
-          <div className="absolute bottom-2 left-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute bottom-2 left-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded cursor-default">
             {note.selectedPlatform.name}
           </div>
         )}
       </div>
 
-      <h2 className="py-3 text-white">{note.name}</h2>
+      <h2 className="py-3 text-white cursor-default">{note.name}</h2>
 
       {/* Platform badge */}
       {/* {note.selectedPlatform && (
