@@ -17,4 +17,4 @@
 
 [build.environment]
   CI = "false"
-  REACT_APP_RAWG_API_KEY = "ab751c315cac41738ff2e1a51ae8435e"
+  VITE_RAWG_API_KEY = "ab751c315cac41738ff2e1a51ae8435e"

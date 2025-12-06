@@ -9,16 +9,16 @@ import {
   faBarcode,
   faCamera,
 } from "@fortawesome/free-solid-svg-icons";
-import { useAuth } from "./contexts/AuthContext";
-import Login from "./components/Login";
-import GameSearch from "./components/GameSearch";
-import GameLibrary from "./components/GameLibrary";
-import GameForm from "./components/GameForm";
-import GameModal from "./components/GameModal";
-import GamingPlatformLogos from "./components/GamingPlatformLogos";
-import ShareExportControls from "./components/ShareExportControls";
-import NavActionButtons from "./components/NavActionButtons";
-import SharedLibrary from "./components/SharedLibrary";
+import { useAuth } from "./contexts/AuthContext.jsx";
+import Login from "./components/Login.jsx";
+import GameSearch from "./components/GameSearch.jsx";
+import GameLibrary from "./components/GameLibrary.jsx";
+import GameForm from "./components/GameForm.jsx";
+import GameModal from "./components/GameModal.jsx";
+import GamingPlatformLogos from "./components/GamingPlatformLogos.jsx";
+import ShareExportControls from "./components/ShareExportControls.jsx";
+import NavActionButtons from "./components/NavActionButtons.jsx";
+import SharedLibrary from "./components/SharedLibrary.jsx";
 import { useGameManagement } from "./hooks/useGameManagement";
 
 // Toast notification component

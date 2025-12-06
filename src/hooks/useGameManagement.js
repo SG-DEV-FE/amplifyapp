@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 
-const RAWG_API_KEY = process.env.REACT_APP_RAWG_API_KEY || "";
+const RAWG_API_KEY = import.meta.env.VITE_RAWG_API_KEY || "";
 const RAWG_BASE_URL = "https://api.rawg.io/api";
 
 // Helper function to make authenticated requests to Netlify Functions

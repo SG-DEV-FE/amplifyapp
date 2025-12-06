@@ -17,14 +17,13 @@
     "react": "^19.2.1",
     "react-device-detect": "^2.2.3",
     "react-dom": "^19.2.1",
-    "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
     "predeploy": "npm run build",
     "deploy": "netlify deploy --prod --dir=build"
   },
@@ -45,5 +44,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "vite": "^7.2.6"
   }
 }
