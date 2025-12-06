@@ -49,7 +49,7 @@ const GameModal = ({ isOpen, onClose, gameData }) => {
         </span>
 
         {/* Modal panel */}
-        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+        <div className="inline-block align-bottom bg-white rounded-xs px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
           {/* Close button */}
           <div className="absolute top-0 right-0 pt-4 pr-4">
             <button
@@ -82,7 +82,7 @@ const GameModal = ({ isOpen, onClose, gameData }) => {
                 <img
                   src={gameData.image}
                   alt={gameData.name}
-                  className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg mx-auto sm:mx-0"
+                  className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-xs mx-auto sm:mx-0"
                   onError={(e) => {
                     e.target.style.display = "none";
                   }}

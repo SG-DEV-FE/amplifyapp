@@ -292,7 +292,7 @@ const GameLibrary = ({
                   id="platform-select"
                   value={selectedPlatform}
                   onChange={(e) => setSelectedPlatform(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-xs text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">All Platforms ({notes.filter(note => !note.isWishlisted).length})</option>
                   {availablePlatforms.map((platform) => {

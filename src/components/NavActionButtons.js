@@ -63,7 +63,7 @@ const NavActionButtons = ({
         <button
           onClick={() => setShowShareModal(true)}
           title={`Share Library (${totalGames} games)`}
-          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xs transition-colors"
         >
           <svg
             className="w-5 h-5"
@@ -85,7 +85,7 @@ const NavActionButtons = ({
           <button
             onClick={() => setShowWishlistShareModal(true)}
             title={`Share Wishlist (${wishlistCount} games)`}
-            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xs transition-colors"
           >
             <svg
               className="w-5 h-5"
@@ -108,7 +108,7 @@ const NavActionButtons = ({
           <button
             onClick={onExportCSV}
             title={`Export Wishlist CSV (${wishlistCount} games)`}
-            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-xs transition-colors"
           >
             <svg
               className="w-5 h-5"
@@ -131,7 +131,7 @@ const NavActionButtons = ({
           <button
             onClick={onExportPDF}
             title={`Export Wishlist PDF (${wishlistCount} games)`}
-            className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+            className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xs transition-colors"
           >
             <svg
               className="w-5 h-5"
@@ -153,7 +153,7 @@ const NavActionButtons = ({
       {/* Share Modal */}
       {showShareModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-xs shadow-xl max-w-md w-full">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
                 Share Your Game Library
@@ -220,7 +220,7 @@ const NavActionButtons = ({
       {/* Wishlist Share Modal */}
       {showWishlistShareModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div className="bg-white rounded-xs shadow-xl max-w-md w-full mx-4">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900 flex items-center">
                 ❤️ Share Your Wishlist

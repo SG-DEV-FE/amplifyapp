@@ -30,7 +30,7 @@ const Toast = ({ message, type = "success", onClose, isVisible }) => {
   return (
     <div className="fixed top-4 right-4 z-50 animate-fade-in">
       <div
-        className={`${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 max-w-sm`}
+        className={`${bgColor} text-white px-6 py-4 rounded-xs shadow-lg flex items-center space-x-3 max-w-sm`}
       >
         <div className="flex-1">
           <p className="text-sm font-medium">{message}</p>

@@ -38,7 +38,7 @@ const ShareExportControls = ({
             {/* Share Library Button */}
             <button
               onClick={() => setShowShareModal(true)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors"
+              className="flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-xs hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors"
             >
               <svg
                 className="w-4 h-4 mr-2"
@@ -61,7 +61,7 @@ const ShareExportControls = ({
               <>
                 <button
                   onClick={onExportCSV}
-                  className="flex items-center px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:outline-none transition-colors"
+                  className="flex items-center px-4 py-2 bg-green-600 text-white text-sm rounded-xs hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:outline-none transition-colors"
                 >
                   <svg
                     className="w-4 h-4 mr-2"
@@ -81,7 +81,7 @@ const ShareExportControls = ({
 
                 <button
                   onClick={onExportPDF}
-                  className="flex items-center px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors"
+                  className="flex items-center px-4 py-2 bg-purple-600 text-white text-sm rounded-xs hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:outline-none transition-colors"
                 >
                   <svg
                     className="w-4 h-4 mr-2"
@@ -107,7 +107,7 @@ const ShareExportControls = ({
       {/* Share Modal */}
       {showShareModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-xs shadow-xl max-w-md w-full">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
                 Share Your Game Library
