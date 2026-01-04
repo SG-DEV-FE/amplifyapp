@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Search, X } from "lucide-react";
 // import { isMobile } from "react-device-detect"; (barcode scanner removed)
 import psLogo from "../ps-logo.svg";
 
@@ -192,9 +192,8 @@ const GameSearch = ({
       <div className="w-full max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto">
         <div className="relative">
           <div className="flex items-center bg-white rounded-xs border border-gray-300 shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
-            <FontAwesomeIcon
-              icon="search"
-              className="text-gray-400 ml-3 sm:ml-4"
+            <Search
+              className="text-gray-400 ml-3 sm:ml-4 w-5 h-5"
             />
             <input
               type="text"
@@ -208,7 +207,7 @@ const GameSearch = ({
                 onClick={clearSearch}
                 className="text-gray-400 hover:text-gray-600 mr-2"
               >
-                <FontAwesomeIcon icon="times" />
+                <X className="w-5 h-5" />
               </button>
             )}
             {/* Barcode scanner removed */}
@@ -294,7 +293,7 @@ const GameSearch = ({
                     onClick={handleCancelPlatformSelection}
                     className="text-gray-500 hover:text-gray-700"
                   >
-                    <FontAwesomeIcon icon="times" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">

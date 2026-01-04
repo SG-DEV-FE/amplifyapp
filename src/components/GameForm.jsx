@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { PlusSquare } from "lucide-react";
 
 const RAWG_API_KEY = import.meta.env.VITE_RAWG_API_KEY || "";
 const RAWG_BASE_URL = "https://api.rawg.io/api";
@@ -220,11 +220,13 @@ const GameForm = ({
   return (
     <>
       <div className="container mx-auto py-12">
-        <p className="text-center">
-          <FontAwesomeIcon className="text-blue-500" icon="plus-square" />
+        <p className="text-center flex items-center justify-center gap-2">
+          <PlusSquare className="text-blue-500" />
+          <span>
           {editMode
-            ? " Edit your game using the form below"
-            : " Add a game manually using the form below"}
+            ? "Edit your game using the form below"
+            : "Add a game manually using the form below"}
+          </span>
         </p>
       </div>
 

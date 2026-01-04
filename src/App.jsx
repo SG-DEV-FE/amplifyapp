@@ -1,14 +1,5 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import {
-  faPlusSquare,
-  faChevronDown,
-  faSearch,
-  faTimes,
-  faBarcode,
-  faCamera,
-} from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "./contexts/AuthContext.jsx";
 import Login from "./components/Login.jsx";
 import GameSearch from "./components/GameSearch.jsx";
