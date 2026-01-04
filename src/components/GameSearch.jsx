@@ -34,11 +34,11 @@ const GameImage = ({ src, alt, className, fallbackSrc = psLogo }) => {
 
   return (
     <div className="relative">
-      {isLoading && <ShimmerImage className={className} />}
+      {isLoading && <ShimmerImage className={className || ""} />}
       <img
-        src={imgSrc}
-        alt={alt}
-        className={`${className} ${isLoading ? 'opacity-0 absolute' : 'opacity-100'} transition-opacity duration-300`}
+        src={imgSrc || fallbackSrc}
+        alt={alt || "Game image"}
+        className={`${className || ""} ${isLoading ? 'opacity-0 absolute' : 'opacity-100'} transition-opacity duration-300`}
         onLoad={handleLoad}
         onError={handleError}
         style={{ display: isLoading ? 'none' : 'block' }}
