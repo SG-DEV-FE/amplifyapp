@@ -88,15 +88,6 @@ const AnimatedHeartNotification = ({ isVisible, isWishlisted }) => {
   );
 };
 
-library.add(
-  faPlusSquare,
-  faChevronDown,
-  faSearch,
-  faTimes,
-  faBarcode,
-  faCamera
-);
-
 // Main Game Library Component
 function GameLibraryApp() {
   const { user, isAdmin, signOut } = useAuth();
