@@ -230,12 +230,12 @@ const GamingPlatformLogos = ({ mode = "rotate", interval = 3000 }) => {
       href={currentPlatform.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="h-8 w-8 hover:opacity-70 transition-all duration-500"
+      className="h-full w-full hover:opacity-70 transition-all duration-500"
       aria-label={currentPlatform.name}
       title={currentPlatform.name}
       key={currentIndex}
     >
-      <div className="animate-fadeIn">{currentPlatform.logo}</div>
+      <div className="animate-fadeIn h-full w-full">{currentPlatform.logo}</div>
     </a>
   );
 };
