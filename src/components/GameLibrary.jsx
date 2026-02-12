@@ -2,14 +2,27 @@ import React, { useState, useMemo } from "react";
 import psLogo from "../ps-logo.svg";
 
 // Shimmer placeholder component
-const ShimmerImage = ({ width = "w-full", height = "h-64", className = "" }) => (
-  <div className={`${width} ${height} bg-gray-200 rounded animate-pulse relative overflow-hidden ${className}`}>
+const ShimmerImage = ({
+  width = "w-full",
+  height = "h-64",
+  className = "",
+}) => (
+  <div
+    className={`${width} ${height} bg-gray-200 rounded animate-pulse relative overflow-hidden ${className}`}
+  >
     <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-shimmer"></div>
   </div>
 );
 
 // Game image component with loading state
-const GameImage = ({ src, alt, className, fallbackSrc = psLogo, onLoad, onError }) => {
+const GameImage = ({
+  src,
+  alt,
+  className,
+  fallbackSrc = psLogo,
+  onLoad,
+  onError,
+}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [imgSrc, setImgSrc] = useState(src);
@@ -55,10 +68,10 @@ const GameImage = ({ src, alt, className, fallbackSrc = psLogo, onLoad, onError 
       <img
         src={imgSrc}
         alt={alt}
-        className={`${className} ${isLoading ? 'opacity-0 absolute' : 'opacity-100'} transition-opacity duration-300`}
+        className={`${className} ${isLoading ? "opacity-0 absolute" : "opacity-100"} transition-opacity duration-300`}
         onLoad={handleLoad}
         onError={handleError}
-        style={{ display: isLoading ? 'none' : 'block' }}
+        style={{ display: isLoading ? "none" : "block" }}
       />
     </div>
   );
@@ -71,6 +84,7 @@ const GameCard = ({
   onDelete,
   onToggleWishlist,
   deletingGameId,
+  highlightDelete = false, // Add highlight prop
 }) => {
   const handleImageError = (e) => {
     e.target.src = psLogo;
@@ -149,10 +163,10 @@ const GameCard = ({
         </button>
         <button
           type="button"
-          className={`px-4 py-2 text-white rounded-full shadow-sm focus:ring-2 focus:ring-300 ${
+          className={`px-4 py-2 text-white rounded-full shadow-sm focus:ring-2 focus:ring-300 delete-button ${
             deletingGameId === note.id
               ? "bg-gray-400 cursor-not-allowed"
-              : "bg-red-500 hover:bg-red-300 cursor-pointer"
+              : `bg-red-500 hover:bg-red-300 cursor-pointer ${highlightDelete ? "ring-4 ring-yellow-400 animate-pulse" : ""}`
           }`}
           onClick={() => onDelete(note)}
           disabled={deletingGameId === note.id}
@@ -178,6 +192,8 @@ const GameLibrary = ({
   onDelete,
   onToggleWishlist,
   deletingGameId = null,
+  isDemo = false, // Demo mode flag
+  highlightDelete = false, // Highlight delete buttons for tour
 }) => {
   const [selectedPlatform, setSelectedPlatform] = useState("all");
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
@@ -219,7 +235,7 @@ const GameLibrary = ({
     return filtered.filter(
       (note) =>
         note.selectedPlatform &&
-        note.selectedPlatform.id === parseInt(selectedPlatform)
+        note.selectedPlatform.id === parseInt(selectedPlatform),
     );
   }, [notes, selectedPlatform, showWishlistOnly]);
   if (notes.length === 0) {
@@ -294,13 +310,16 @@ const GameLibrary = ({
                   onChange={(e) => setSelectedPlatform(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-xs text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="all">All Platforms ({notes.filter(note => !note.isWishlisted).length})</option>
+                  <option value="all">
+                    All Platforms (
+                    {notes.filter((note) => !note.isWishlisted).length})
+                  </option>
                   {availablePlatforms.map((platform) => {
                     const count = notes.filter(
                       (note) =>
                         note.selectedPlatform &&
                         note.selectedPlatform.id === platform.id &&
-                        !note.isWishlisted
+                        !note.isWishlisted,
                     ).length;
                     return (
                       <option key={platform.id} value={platform.id.toString()}>
@@ -326,14 +345,15 @@ const GameLibrary = ({
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                   }`}
                 >
-                  All Platforms ({notes.filter(note => !note.isWishlisted).length})
+                  All Platforms (
+                  {notes.filter((note) => !note.isWishlisted).length})
                 </button>
                 {availablePlatforms.map((platform) => {
                   const count = notes.filter(
                     (note) =>
                       note.selectedPlatform &&
                       note.selectedPlatform.id === platform.id &&
-                      !note.isWishlisted
+                      !note.isWishlisted,
                   ).length;
                   return (
                     <button
@@ -392,6 +412,7 @@ const GameLibrary = ({
                 onDelete={onDelete}
                 onToggleWishlist={onToggleWishlist}
                 deletingGameId={deletingGameId}
+                highlightDelete={highlightDelete}
               />
             ))}
           </div>

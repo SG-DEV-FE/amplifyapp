@@ -5,7 +5,9 @@ import psLogo from "../ps-logo.svg";
 
 // Shimmer placeholder component
 const ShimmerImage = ({ width = "w-16", height = "h-16", className = "" }) => (
-  <div className={`${width} ${height} bg-gray-200 rounded animate-pulse relative overflow-hidden ${className}`}>
+  <div
+    className={`${width} ${height} bg-gray-200 rounded animate-pulse relative overflow-hidden ${className}`}
+  >
     <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-shimmer"></div>
   </div>
 );
@@ -38,10 +40,10 @@ const GameImage = ({ src, alt, className, fallbackSrc = psLogo }) => {
       <img
         src={imgSrc || fallbackSrc}
         alt={alt || "Game image"}
-        className={`${className || ""} ${isLoading ? 'opacity-0 absolute' : 'opacity-100'} transition-opacity duration-300`}
+        className={`${className || ""} ${isLoading ? "opacity-0 absolute" : "opacity-100"} transition-opacity duration-300`}
         onLoad={handleLoad}
         onError={handleError}
-        style={{ display: isLoading ? 'none' : 'block' }}
+        style={{ display: isLoading ? "none" : "block" }}
       />
     </div>
   );
@@ -59,6 +61,7 @@ const GameSearch = ({
   hasGames,
   isUpdatingImages,
   existingGames = [], // Add this prop to track existing games
+  isDemo = false, // Demo mode flag
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -72,7 +75,7 @@ const GameSearch = ({
   // Helper function to check if a game has been recently added
   const isGameRecentlyAdded = (gameId) => {
     return existingGames.some(
-      (game) => game.id === gameId || game.rawgId === gameId
+      (game) => game.id === gameId || game.rawgId === gameId,
     );
   };
 
@@ -88,8 +91,8 @@ const GameSearch = ({
     try {
       const response = await fetch(
         `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-          query
-        )}&page_size=10`
+          query,
+        )}&page_size=10`,
       );
 
       if (!response.ok) throw new Error("Failed to fetch games");
@@ -137,7 +140,7 @@ const GameSearch = ({
   const handlePlatformToggle = (platform) => {
     setSelectedPlatforms((prev) => {
       const isSelected = prev.some(
-        (p) => p.platform.id === platform.platform.id
+        (p) => p.platform.id === platform.platform.id,
       );
       if (isSelected) {
         return prev.filter((p) => p.platform.id !== platform.platform.id);
@@ -192,9 +195,7 @@ const GameSearch = ({
       <div className="w-full max-w-sm sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto">
         <div className="relative">
           <div className="flex items-center bg-white rounded-xs border border-gray-300 shadow-sm hover:shadow-md transition-shadow focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
-            <Search
-              className="text-gray-400 ml-3 sm:ml-4 w-5 h-5"
-            />
+            <Search className="text-gray-400 ml-3 sm:ml-4 w-5 h-5" />
             <input
               type="text"
               value={searchQuery}
@@ -254,7 +255,7 @@ const GameSearch = ({
                         <p className="text-sm text-gray-600">
                           {game.released &&
                             `Released: ${new Date(
-                              game.released
+                              game.released,
                             ).getFullYear()}`}
                           {game.genres &&
                             game.genres.length > 0 &&
@@ -337,7 +338,7 @@ const GameSearch = ({
                       <input
                         type="checkbox"
                         checked={selectedPlatforms.some(
-                          (p) => p.platform.id === platform.platform.id
+                          (p) => p.platform.id === platform.platform.id,
                         )}
                         onChange={() => handlePlatformToggle(platform)}
                         className="form-checkbox h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
@@ -401,47 +402,46 @@ const GameSearch = ({
               : "Can't find your game? Add it manually"}
           </button>
           <div className="flex flex-row align-baseline justify-center items-center gap-2">
-
-          {hasGames && (
-            <button
-              onClick={onUpdateMissingImages}
-              disabled={isUpdatingImages}
-              className={`px-4 py-2 text-sm font-medium rounded-md ${
-                isUpdatingImages
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-green-600 hover:bg-green-700 text-white"
-              }`}
-            >
-              {isUpdatingImages ? (
-                <>
-                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Finding Images...
-                </>
-              ) : (
-                "Find Missing Images"
-              )}
-            </button>
-          )}
-          {hasGames && (
-            <button
-              onClick={onUpdateMissingInformation}
-              disabled={isUpdatingImages}
-              className={`px-4 py-2 text-sm font-medium rounded-md ${
-                isUpdatingImages
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-purple-600 hover:bg-purple-700 text-white"
-              }`}
-            >
-              {isUpdatingImages ? (
-                <>
-                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Updating Info...
-                </>
-              ) : (
-                "Update Missing Info"
-              )}
-            </button>
-          )}
+            {hasGames && (
+              <button
+                onClick={onUpdateMissingImages}
+                disabled={isUpdatingImages}
+                className={`px-4 py-2 text-sm font-medium rounded-md ${
+                  isUpdatingImages
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-700 text-white"
+                }`}
+              >
+                {isUpdatingImages ? (
+                  <>
+                    <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Finding Images...
+                  </>
+                ) : (
+                  "Find Missing Images"
+                )}
+              </button>
+            )}
+            {hasGames && (
+              <button
+                onClick={onUpdateMissingInformation}
+                disabled={isUpdatingImages}
+                className={`px-4 py-2 text-sm font-medium rounded-md ${
+                  isUpdatingImages
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-purple-600 hover:bg-purple-700 text-white"
+                }`}
+              >
+                {isUpdatingImages ? (
+                  <>
+                    <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Updating Info...
+                  </>
+                ) : (
+                  "Update Missing Info"
+                )}
+              </button>
+            )}
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import { useAuth } from "./contexts/AuthContext.jsx";
 import Login from "./components/Login.jsx";
+import GuidedTour from "./components/GuidedTour.jsx";
 import GameSearch from "./components/GameSearch.jsx";
 import GameLibrary from "./components/GameLibrary.jsx";
 import GameForm from "./components/GameForm.jsx";
@@ -189,7 +190,7 @@ function GameLibraryApp() {
   const handleEdit = (note) => {
     // Save current scroll position before opening edit form
     setSavedScrollPosition(window.scrollY);
-    
+
     setEditingNote(note);
     setEditMode(true);
     setShowManualForm(true);
@@ -206,7 +207,7 @@ function GameLibraryApp() {
     setTimeout(() => {
       window.scrollTo({
         top: savedScrollPosition,
-        behavior: "smooth"
+        behavior: "smooth",
       });
     }, 100);
   };
@@ -244,8 +245,10 @@ function GameLibraryApp() {
                   onShareWishlist={createWishlistShareLink}
                   onExportCSV={exportWishlistCSV}
                   onExportPDF={exportWishlistPDF}
-                  wishlistCount={notes.filter(note => note.isWishlisted).length}
-                  totalGames={notes.filter(note => !note.isWishlisted).length}
+                  wishlistCount={
+                    notes.filter((note) => note.isWishlisted).length
+                  }
+                  totalGames={notes.filter((note) => !note.isWishlisted).length}
                 />
               )}
 
@@ -264,8 +267,10 @@ function GameLibraryApp() {
                   onShareWishlist={createWishlistShareLink}
                   onExportCSV={exportWishlistCSV}
                   onExportPDF={exportWishlistPDF}
-                  wishlistCount={notes.filter(note => note.isWishlisted).length}
-                  totalGames={notes.filter(note => !note.isWishlisted).length}
+                  wishlistCount={
+                    notes.filter((note) => note.isWishlisted).length
+                  }
+                  totalGames={notes.filter((note) => !note.isWishlisted).length}
                 />
               )}
 
@@ -359,15 +364,16 @@ function GameLibraryApp() {
 // Main App Component with Authentication
 export default function App() {
   const { user, loading } = useAuth();
+  const [showTour, setShowTour] = useState(false);
 
   // Check if this is a shared library URL
   const currentPath = window.location.pathname;
-  const isSharedLibrary = currentPath.startsWith('/shared/');
-  
+  const isSharedLibrary = currentPath.startsWith("/shared/");
+
   if (isSharedLibrary) {
     // Extract shareId from URL path like /shared/abc123-def456
-    const shareId = currentPath.split('/shared/')[1];
-    
+    const shareId = currentPath.split("/shared/")[1];
+
     if (shareId) {
       return <SharedLibrary shareId={shareId} />;
     } else {
@@ -376,16 +382,23 @@ export default function App() {
         <div className="min-h-screen flex items-center justify-center bg-black">
           <div className="text-center text-white">
             <h2 className="text-2xl font-bold mb-4">Invalid Share Link</h2>
-            <p className="text-gray-400">The shared library link is not valid.</p>
+            <p className="text-gray-400">
+              The shared library link is not valid.
+            </p>
           </div>
         </div>
       );
     }
   }
 
+  // Show guided tour if requested
+  if (showTour && !user) {
+    return <GuidedTour onComplete={() => setShowTour(false)} />;
+  }
+
   // Show login screen if not authenticated
   if (!user && !loading) {
-    return <Login />;
+    return <Login onStartTour={() => setShowTour(true)} />;
   }
 
   // Show loading spinner while checking authentication

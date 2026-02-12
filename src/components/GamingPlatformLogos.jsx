@@ -8,8 +8,8 @@ const platforms = [
     color: "#0070d1",
     logo: (
       <svg
-        width="50px"
-        height="50px"
+        width="100%"
+        height="100%"
         viewBox="0 0 255998 255998"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -69,8 +69,8 @@ const platforms = [
     color: "#107C10",
     logo: (
       <svg
-        width="50px"
-        height="50px"
+        width="100%"
+        height="100%"
         viewBox="0 0 512 512"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -106,8 +106,8 @@ const platforms = [
     color: "#171A21",
     logo: (
       <svg
-        width="50px"
-        height="50px"
+        width="100%"
+        height="100%"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -127,8 +127,8 @@ const platforms = [
     color: "#E60012",
     logo: (
       <svg
-        width="50px"
-        height="50px"
+        width="100%"
+        height="100%"
         viewBox="0 0 512 512"
         xmlns="http://www.w3.org/2000/svg"
       >
@@ -166,8 +166,8 @@ const platforms = [
     color: "#313131",
     logo: (
       <svg
-        width="50px"
-        height="50px"
+        width="100%"
+        height="100%"
         viewBox="0 0 32 32"
         xmlns="http://www.w3.org/2000/svg"
       >
