@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Share2, HeartPulse, FileDown, File } from "lucide-react";
 
 const NavActionButtons = ({
   onShare,
@@ -6,7 +7,7 @@ const NavActionButtons = ({
   onExportCSV,
   onExportPDF,
   wishlistCount,
-  totalGames
+  totalGames,
 }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showWishlistShareModal, setShowWishlistShareModal] = useState(false);
@@ -65,19 +66,7 @@ const NavActionButtons = ({
           title={`Share Library (${totalGames} games)`}
           className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xs transition-colors"
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-            />
-          </svg>
+          <Share2 className="w-5 h-5" />
         </button>
 
         {/* Share Wishlist Icon */}
@@ -87,19 +76,7 @@ const NavActionButtons = ({
             title={`Share Wishlist (${wishlistCount} games)`}
             className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xs transition-colors"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316"
-              />
-            </svg>
+            <HeartPulse className="w-5 h-5" />
           </button>
         )}
 
@@ -110,19 +87,7 @@ const NavActionButtons = ({
             title={`Export Wishlist CSV (${wishlistCount} games)`}
             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-xs transition-colors"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+            <FileDown className="w-5 h-5" />
           </button>
         )}
 
@@ -133,19 +98,7 @@ const NavActionButtons = ({
             title={`Export Wishlist PDF (${wishlistCount} games)`}
             className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xs transition-colors"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-              />
-            </svg>
+            <File className="w-5 h-5" />
           </button>
         )}
       </div>
@@ -180,7 +133,8 @@ const NavActionButtons = ({
                 onKeyPress={(e) => e.key === "Enter" && handleCreateShare()}
               />
               <p className="text-xs text-gray-500 mt-2">
-                ℹ️ Your complete game collection (library + wishlist) will be shared. Use the ❤️ button to share only your wishlist.
+                ℹ️ Your complete game collection (library + wishlist) will be
+                shared. Use the ❤️ button to share only your wishlist.
               </p>
             </div>
 
@@ -240,10 +194,13 @@ const NavActionButtons = ({
                 onChange={(e) => setWishlistOwnerName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                 placeholder="Enter your name"
-                onKeyPress={(e) => e.key === "Enter" && handleCreateWishlistShare()}
+                onKeyPress={(e) =>
+                  e.key === "Enter" && handleCreateWishlistShare()
+                }
               />
               <p className="text-xs text-gray-500 mt-2">
-                ℹ️ Only your wishlist items will be shared ({wishlistCount} games). The link will be public but not searchable.
+                ℹ️ Only your wishlist items will be shared ({wishlistCount}{" "}
+                games). The link will be public but not searchable.
               </p>
             </div>
 
