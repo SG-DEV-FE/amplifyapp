@@ -1,17 +1,19 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'build', // Keep same output directory for Netlify compatibility
-    sourcemap: true, // Useful for debugging
+    outDir: "dist",
   },
   server: {
-    port: 3000,
-    open: true
+    port: 5173,
+    proxy: {
+      "/api": {
+        target: "https://mygaminglibrary.netlify.app",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
-  // Ensure compatibility with your existing asset structure
-  publicDir: 'public'
-})
+});

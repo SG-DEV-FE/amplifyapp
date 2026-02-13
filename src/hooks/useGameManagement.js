@@ -39,7 +39,7 @@ const fetchWithAuth = async (url, options = {}) => {
     const errMsg =
       (data && data.error) || data || response.statusText || "Request failed";
     throw new Error(
-      typeof errMsg === "string" ? errMsg : JSON.stringify(errMsg)
+      typeof errMsg === "string" ? errMsg : JSON.stringify(errMsg),
     );
   }
 
@@ -49,7 +49,7 @@ const fetchWithAuth = async (url, options = {}) => {
 export const useGameManagement = (
   userId,
   onShowToast,
-  onShowHeartNotification
+  onShowHeartNotification,
 ) => {
   const [notes, setNotes] = useState([]);
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
@@ -64,8 +64,11 @@ export const useGameManagement = (
       console.log("[useGameManagement] fetchNotes start");
       const games = await fetchWithAuth("/api/games");
 
+      // Ensure games is an array, default to empty array if not
+      const gamesArray = Array.isArray(games) ? games : [];
+
       // Handle image URLs - check if it's a URL or a Netlify image
-      const notesWithImages = games.map((note) => {
+      const notesWithImages = gamesArray.map((note) => {
         if (note.image) {
           // If it's already a full URL (from RAWG), use it directly
           if (
@@ -77,7 +80,7 @@ export const useGameManagement = (
           // If it's a filename, get the URL from Netlify
           else {
             const imageUrl = `/api/images?file=${encodeURIComponent(
-              note.image
+              note.image,
             )}`;
             return { ...note, image: imageUrl };
           }
@@ -109,7 +112,7 @@ export const useGameManagement = (
           });
 
           console.log(
-            `[useGameManagement] fetchNotes setNotes mergedCount=${merged.length} serverCount=${notesWithImages.length} localPrev=${prev.length}`
+            `[useGameManagement] fetchNotes setNotes mergedCount=${merged.length} serverCount=${notesWithImages.length} localPrev=${prev.length}`,
           );
           return merged;
         } catch (err) {
@@ -130,7 +133,7 @@ export const useGameManagement = (
       if (game.id && (!game.publishers || game.publishers.length === 0)) {
         try {
           const detailResponse = await fetch(
-            `${RAWG_BASE_URL}/games/${game.id}?key=${RAWG_API_KEY}`
+            `${RAWG_BASE_URL}/games/${game.id}?key=${RAWG_API_KEY}`,
           );
           if (detailResponse.ok) {
             completeGameData = await detailResponse.json();
@@ -147,11 +150,14 @@ export const useGameManagement = (
         // If a specific platform was selected, use it; otherwise use all platforms
         description: game.selectedPlatform
           ? game.selectedPlatform.name
-          : completeGameData.platforms?.map((p) => p.platform.name).join(", ") ||
-            "Multiple Platforms",
+          : completeGameData.platforms
+              ?.map((p) => p.platform.name)
+              .join(", ") || "Multiple Platforms",
         genre: completeGameData.genres?.map((g) => g.name).join(", ") || "",
         release_date: completeGameData.released || "",
-        players: completeGameData.tags?.find((tag) => tag.name.includes("Multiplayer"))
+        players: completeGameData.tags?.find((tag) =>
+          tag.name.includes("Multiplayer"),
+        )
           ? 2
           : 1,
         publisher: completeGameData.publishers?.[0]?.name || "Unknown",
@@ -178,7 +184,7 @@ export const useGameManagement = (
       // Normalize image URL for display (if it's not a full URL, treat as Netlify filename)
       if (tempNote.image && !tempNote.image.startsWith("http")) {
         tempNote.image = `/api/images?file=${encodeURIComponent(
-          tempNote.image
+          tempNote.image,
         )}`;
       }
 
@@ -195,18 +201,18 @@ export const useGameManagement = (
         reject: rejectFn,
       });
       console.log(
-        `[useGameManagement] addGameFromSearch registered pending ${tempId} name=${tempNote.name}`
+        `[useGameManagement] addGameFromSearch registered pending ${tempId} name=${tempNote.name}`,
       );
 
       setNotes((prev) => [...prev, tempNote]);
       console.log(
-        `[useGameManagement] addGameFromSearch optimistic added ${tempId} name=${tempNote.name}`
+        `[useGameManagement] addGameFromSearch optimistic added ${tempId} name=${tempNote.name}`,
       );
 
       try {
         // Send create request
         console.log(
-          `[useGameManagement] addGameFromSearch POST start ${tempId}`
+          `[useGameManagement] addGameFromSearch POST start ${tempId}`,
         );
         const createdGame = await fetchWithAuth("/api/games", {
           method: "POST",
@@ -220,16 +226,16 @@ export const useGameManagement = (
           !createdNormalized.image.startsWith("http")
         ) {
           createdNormalized.image = `/api/images?file=${encodeURIComponent(
-            createdNormalized.image
+            createdNormalized.image,
           )}`;
         }
 
         // Replace temporary note with the server-created note
         setNotes((prev) =>
-          prev.map((n) => (n.id === tempId ? createdNormalized : n))
+          prev.map((n) => (n.id === tempId ? createdNormalized : n)),
         );
         console.log(
-          `[useGameManagement] addGameFromSearch POST success ${tempId} -> realId=${createdNormalized.id}`
+          `[useGameManagement] addGameFromSearch POST success ${tempId} -> realId=${createdNormalized.id}`,
         );
 
         // Resolve the pending create so any waiting updates (edits) can proceed
@@ -237,7 +243,7 @@ export const useGameManagement = (
         if (pending && pending.resolve) {
           pending.resolve(createdNormalized);
           console.log(
-            `[useGameManagement] addGameFromSearch resolved pending ${tempId}`
+            `[useGameManagement] addGameFromSearch resolved pending ${tempId}`,
           );
         }
         pendingCreatesRef.current.delete(tempId);
@@ -245,13 +251,13 @@ export const useGameManagement = (
         // Background reconcile: ensure we eventually match server state
         // Do not await so UI stays responsive
         fetchNotes().catch((e) =>
-          console.warn("Background fetchNotes failed:", e)
+          console.warn("Background fetchNotes failed:", e),
         );
       } catch (postErr) {
         // Remove temporary note on failure
         setNotes((prev) => prev.filter((n) => n.id !== tempId));
         console.log(
-          `[useGameManagement] addGameFromSearch POST failed ${tempId} error=${postErr.message}`
+          `[useGameManagement] addGameFromSearch POST failed ${tempId} error=${postErr.message}`,
         );
         const pending = pendingCreatesRef.current.get(tempId);
         if (pending && pending.reject) pending.reject(postErr);
@@ -261,7 +267,7 @@ export const useGameManagement = (
         if (onShowToast) {
           onShowToast(
             "Failed to add game. Please try the manual form.",
-            "error"
+            "error",
           );
         }
         return;
@@ -274,7 +280,7 @@ export const useGameManagement = (
         onShowToast(
           `"${game.name}"${platformText} added to your ${
             game.isWishlisted ? "wishlist" : "library"
-          }!`
+          }!`,
         );
       }
     } catch (error) {
@@ -310,7 +316,7 @@ export const useGameManagement = (
 
       if (tempNote.image && !tempNote.image.startsWith("http")) {
         tempNote.image = `/api/images?file=${encodeURIComponent(
-          tempNote.image
+          tempNote.image,
         )}`;
       }
 
@@ -327,12 +333,12 @@ export const useGameManagement = (
         reject: rejectFn,
       });
       console.log(
-        `[useGameManagement] createNote registered pending ${tempId} name=${tempNote.name}`
+        `[useGameManagement] createNote registered pending ${tempId} name=${tempNote.name}`,
       );
 
       setNotes((prev) => [...prev, tempNote]);
       console.log(
-        `[useGameManagement] createNote optimistic added ${tempId} name=${tempNote.name}`
+        `[useGameManagement] createNote optimistic added ${tempId} name=${tempNote.name}`,
       );
 
       try {
@@ -356,16 +362,16 @@ export const useGameManagement = (
         const createdNote = { ...created };
         if (createdNote.image && !createdNote.image.startsWith("http")) {
           createdNote.image = `/api/images?file=${encodeURIComponent(
-            createdNote.image
+            createdNote.image,
           )}`;
         }
 
         // Replace temp with server-created note
         setNotes((prev) =>
-          prev.map((n) => (n.id === tempId ? createdNote : n))
+          prev.map((n) => (n.id === tempId ? createdNote : n)),
         );
         console.log(
-          `[useGameManagement] createNote POST success ${tempId} -> realId=${createdNote.id}`
+          `[useGameManagement] createNote POST success ${tempId} -> realId=${createdNote.id}`,
         );
 
         // Resolve the pending create so any waiting edits can proceed
@@ -373,20 +379,20 @@ export const useGameManagement = (
         if (pending && pending.resolve) {
           pending.resolve(createdNote);
           console.log(
-            `[useGameManagement] createNote resolved pending ${tempId}`
+            `[useGameManagement] createNote resolved pending ${tempId}`,
           );
         }
         pendingCreatesRef.current.delete(tempId);
 
         // Background reconcile
         fetchNotes().catch((e) =>
-          console.warn("Background fetchNotes failed:", e)
+          console.warn("Background fetchNotes failed:", e),
         );
       } catch (postErr) {
         // Remove optimistic item and show error
         setNotes((prev) => prev.filter((n) => n.id !== tempId));
         console.log(
-          `[useGameManagement] createNote POST failed ${tempId} error=${postErr.message}`
+          `[useGameManagement] createNote POST failed ${tempId} error=${postErr.message}`,
         );
         const pending = pendingCreatesRef.current.get(tempId);
         if (pending && pending.reject) pending.reject(postErr);
@@ -414,7 +420,7 @@ export const useGameManagement = (
   const deleteNote = async (noteToDelete) => {
     if (
       !window.confirm(
-        `Are you sure you want to delete "${noteToDelete.name}"?\n\nThis action cannot be undone.`
+        `Are you sure you want to delete "${noteToDelete.name}"?\n\nThis action cannot be undone.`,
       )
     ) {
       return;
@@ -424,7 +430,7 @@ export const useGameManagement = (
       if (onShowToast) {
         onShowToast(
           "Please wait - another game is currently being deleted.",
-          "error"
+          "error",
         );
       }
       return;
@@ -437,7 +443,9 @@ export const useGameManagement = (
 
     try {
       // Immediately remove the game from UI for instant feedback
-      setNotes(prevNotes => prevNotes.filter(note => note.id !== noteToDelete.id));
+      setNotes((prevNotes) =>
+        prevNotes.filter((note) => note.id !== noteToDelete.id),
+      );
 
       // Delete the game from the database
       await fetchWithAuth(`/api/games?id=${noteToDelete.id}`, {
@@ -451,7 +459,7 @@ export const useGameManagement = (
             `/api/images?file=${encodeURIComponent(noteToDelete.image)}`,
             {
               method: "DELETE",
-            }
+            },
           );
         } catch (error) {
           // Don't fail the whole operation if image deletion fails
@@ -466,7 +474,7 @@ export const useGameManagement = (
         onShowToast(
           `"${noteToDelete.name}"${platformText} has been successfully deleted from your ${
             noteToDelete.isWishlisted ? "wishlist" : "library"
-          }!`
+          }!`,
         );
       }
     } catch (error) {
@@ -479,7 +487,7 @@ export const useGameManagement = (
       if (onShowToast) {
         onShowToast(
           `Failed to delete "${noteToDelete.name}"${platformText}. Please try again.`,
-          "error"
+          "error",
         );
       }
     } finally {
@@ -497,7 +505,7 @@ export const useGameManagement = (
       let noteToUpdate = editingNote;
       if (editingNote.id && String(editingNote.id).startsWith("tmp-")) {
         console.log(
-          `[useGameManagement] updateNote waiting for pending create ${editingNote.id}`
+          `[useGameManagement] updateNote waiting for pending create ${editingNote.id}`,
         );
         const pending = pendingCreatesRef.current.get(editingNote.id);
         if (pending && pending.promise) {
@@ -505,46 +513,48 @@ export const useGameManagement = (
             const resolved = await pending.promise;
             noteToUpdate = resolved;
             console.log(
-              `[useGameManagement] updateNote pending resolved ${editingNote.id} -> ${noteToUpdate.id}`
+              `[useGameManagement] updateNote pending resolved ${editingNote.id} -> ${noteToUpdate.id}`,
             );
           } catch (err) {
             // If the create failed, abort update
             if (onShowToast)
               onShowToast("Cannot edit: original create failed.", "error");
             console.log(
-              `[useGameManagement] updateNote pending rejected ${editingNote.id} error=${err.message}`
+              `[useGameManagement] updateNote pending rejected ${editingNote.id} error=${err.message}`,
             );
             return;
           }
         } else {
           // No pending create found - attempt to fetch latest list and find item
           console.log(
-            `[useGameManagement] updateNote no pending found for ${editingNote.id}, fetching notes`
+            `[useGameManagement] updateNote no pending found for ${editingNote.id}, fetching notes`,
           );
           await fetchNotes();
           const found = notes.find((n) => n.id === editingNote.id);
           if (found) {
             noteToUpdate = found;
             console.log(
-              `[useGameManagement] updateNote found note after fetch ${found.id}`
+              `[useGameManagement] updateNote found note after fetch ${found.id}`,
             );
           }
         }
       }
 
       // If image has changed and old image was a Netlify file, delete the old one
-      const imageHasChanged = formData.image && formData.image !== noteToUpdate.image;
-      const oldImageIsNetlifyFile = noteToUpdate.image && 
-        !noteToUpdate.image.startsWith("http") && 
+      const imageHasChanged =
+        formData.image && formData.image !== noteToUpdate.image;
+      const oldImageIsNetlifyFile =
+        noteToUpdate.image &&
+        !noteToUpdate.image.startsWith("http") &&
         noteToUpdate.image.includes("/");
-      
+
       if (imageHasChanged && oldImageIsNetlifyFile) {
         try {
           await fetchWithAuth(
             `/api/images?file=${encodeURIComponent(noteToUpdate.image)}`,
             {
               method: "DELETE",
-            }
+            },
           );
         } catch (error) {
           // Error deleting old image, continue with update
@@ -569,14 +579,14 @@ export const useGameManagement = (
       };
 
       console.log(
-        `[useGameManagement] updateNote PUT start id=${noteToUpdate.id}`
+        `[useGameManagement] updateNote PUT start id=${noteToUpdate.id}`,
       );
       await fetchWithAuth(`/api/games?id=${noteToUpdate.id}`, {
         method: "PUT",
         body: JSON.stringify(updateData),
       });
       console.log(
-        `[useGameManagement] updateNote PUT success id=${noteToUpdate.id}`
+        `[useGameManagement] updateNote PUT success id=${noteToUpdate.id}`,
       );
 
       await fetchNotes();
@@ -596,7 +606,7 @@ export const useGameManagement = (
     try {
       // Find games without images
       const gamesWithoutImages = notes.filter(
-        (note) => !note.image || note.image === ""
+        (note) => !note.image || note.image === "",
       );
 
       if (gamesWithoutImages.length === 0) {
@@ -614,8 +624,8 @@ export const useGameManagement = (
           // Search RAWG for this game
           const response = await fetch(
             `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-              game.name
-            )}&page_size=5`
+              game.name,
+            )}&page_size=5`,
           );
 
           if (!response.ok) {
@@ -627,7 +637,7 @@ export const useGameManagement = (
 
           // Find the best match (exact name match or first result)
           let bestMatch = searchResults.find(
-            (result) => result.name.toLowerCase() === game.name.toLowerCase()
+            (result) => result.name.toLowerCase() === game.name.toLowerCase(),
           );
 
           if (!bestMatch && searchResults.length > 0) {
@@ -660,7 +670,7 @@ export const useGameManagement = (
         if (onShowToast) {
           onShowToast(
             "No images could be found for the games missing images.",
-            "error"
+            "error",
           );
         }
       }
@@ -669,7 +679,7 @@ export const useGameManagement = (
       if (onShowToast) {
         onShowToast(
           "Failed to update missing images. Please try again.",
-          "error"
+          "error",
         );
       }
     } finally {
@@ -686,12 +696,12 @@ export const useGameManagement = (
 
       // Find games with missing information (no rawgId or missing key fields)
       const gamesWithMissingInfo = notes.filter(
-        (game) => 
-          !game.rawgId || 
-          !game.publisher || 
+        (game) =>
+          !game.rawgId ||
+          !game.publisher ||
           game.publisher === "Unknown" ||
           !game.genre ||
-          !game.release_date
+          !game.release_date,
       );
 
       if (gamesWithMissingInfo.length === 0) {
@@ -702,7 +712,9 @@ export const useGameManagement = (
       }
 
       if (onShowToast) {
-        onShowToast(`Updating information for ${gamesWithMissingInfo.length} games...`);
+        onShowToast(
+          `Updating information for ${gamesWithMissingInfo.length} games...`,
+        );
       }
 
       let updatedCount = 0;
@@ -713,8 +725,8 @@ export const useGameManagement = (
           // Search RAWG for this game to get complete details
           const searchResponse = await fetch(
             `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-              game.name
-            )}&page_size=5`
+              game.name,
+            )}&page_size=5`,
           );
 
           if (!searchResponse.ok) {
@@ -726,7 +738,7 @@ export const useGameManagement = (
 
           // Find the best match
           let bestMatch = searchResults.find(
-            (result) => result.name.toLowerCase() === game.name.toLowerCase()
+            (result) => result.name.toLowerCase() === game.name.toLowerCase(),
           );
 
           if (!bestMatch && searchResults.length > 0) {
@@ -736,7 +748,7 @@ export const useGameManagement = (
           if (bestMatch) {
             // Get detailed game information
             const detailResponse = await fetch(
-              `${RAWG_BASE_URL}/games/${bestMatch.id}?key=${RAWG_API_KEY}`
+              `${RAWG_BASE_URL}/games/${bestMatch.id}?key=${RAWG_API_KEY}`,
             );
 
             if (detailResponse.ok) {
@@ -745,21 +757,28 @@ export const useGameManagement = (
               // Prepare updated game data
               const updatedGameData = {
                 ...game,
-                publisher: game.publisher && game.publisher !== "Unknown" 
-                  ? game.publisher 
-                  : detailData.publishers?.[0]?.name || "Unknown",
-                genre: game.genre || detailData.genres?.map((g) => g.name).join(", ") || "",
+                publisher:
+                  game.publisher && game.publisher !== "Unknown"
+                    ? game.publisher
+                    : detailData.publishers?.[0]?.name || "Unknown",
+                genre:
+                  game.genre ||
+                  detailData.genres?.map((g) => g.name).join(", ") ||
+                  "",
                 release_date: game.release_date || detailData.released || "",
                 rawgId: detailData.id,
                 // Only update image if game doesn't have one
-                image: game.image || detailData.background_image || ""
+                image: game.image || detailData.background_image || "",
               };
 
               // Update the game in the database
-              const updateResponse = await fetchWithAuth(`/api/games?id=${game.id}`, {
-                method: "PUT",
-                body: JSON.stringify(updatedGameData),
-              });
+              const updateResponse = await fetchWithAuth(
+                `/api/games?id=${game.id}`,
+                {
+                  method: "PUT",
+                  body: JSON.stringify(updatedGameData),
+                },
+              );
 
               if (updateResponse) {
                 updatedCount++;
@@ -781,13 +800,15 @@ export const useGameManagement = (
       // Show appropriate success/error message
       if (updatedCount > 0) {
         if (onShowToast) {
-          onShowToast(`Successfully updated information for ${updatedCount} games!`);
+          onShowToast(
+            `Successfully updated information for ${updatedCount} games!`,
+          );
         }
       } else {
         if (onShowToast) {
           onShowToast(
             "No additional information could be found for the games.",
-            "error"
+            "error",
           );
         }
       }
@@ -796,7 +817,7 @@ export const useGameManagement = (
       if (onShowToast) {
         onShowToast(
           "Failed to update missing information. Please try again.",
-          "error"
+          "error",
         );
       }
     } finally {
@@ -829,7 +850,7 @@ export const useGameManagement = (
       if (onShowToast) {
         onShowToast(
           "Failed to update wishlist status. Please try again.",
-          "error"
+          "error",
         );
       }
     }
@@ -839,27 +860,27 @@ export const useGameManagement = (
   const createShareLink = async (ownerName) => {
     try {
       console.log("[createShareLink] Creating share link for:", ownerName);
-      
+
       const data = await fetchWithAuth("/api/shared-library", {
         method: "POST",
         body: JSON.stringify({ ownerName }),
       });
 
       console.log("[createShareLink] Success:", data);
-      
+
       setShareLink(data.shareUrl);
-      
+
       if (onShowToast) {
         onShowToast("Share link created! Link copied to clipboard.");
       }
-      
+
       // Copy to clipboard
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(data.shareUrl);
       } else {
         console.warn("[createShareLink] Clipboard API not available");
       }
-      
+
       return data.shareUrl;
     } catch (error) {
       console.error("[createShareLink] Error creating share link:", error);
@@ -872,31 +893,40 @@ export const useGameManagement = (
 
   const createWishlistShareLink = async (ownerName) => {
     try {
-      console.log("[createWishlistShareLink] Creating wishlist share link for:", ownerName);
-      
+      console.log(
+        "[createWishlistShareLink] Creating wishlist share link for:",
+        ownerName,
+      );
+
       const data = await fetchWithAuth("/api/shared-library", {
         method: "POST",
         body: JSON.stringify({ ownerName, shareType: "wishlist" }),
       });
 
       console.log("[createWishlistShareLink] Success:", data);
-      
+
       if (onShowToast) {
         onShowToast("Wishlist share link created! Link copied to clipboard.");
       }
-      
+
       // Copy to clipboard
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(data.shareUrl);
       } else {
         console.warn("[createWishlistShareLink] Clipboard API not available");
       }
-      
+
       return data.shareUrl;
     } catch (error) {
-      console.error("[createWishlistShareLink] Error creating wishlist share link:", error);
+      console.error(
+        "[createWishlistShareLink] Error creating wishlist share link:",
+        error,
+      );
       if (onShowToast) {
-        onShowToast(`Failed to create wishlist share link: ${error.message}`, "error");
+        onShowToast(
+          `Failed to create wishlist share link: ${error.message}`,
+          "error",
+        );
       }
       throw error;
     }
@@ -905,8 +935,8 @@ export const useGameManagement = (
   // Export wishlist as CSV
   const exportWishlistCSV = () => {
     try {
-      const wishlistGames = notes.filter(note => note.isWishlisted);
-      
+      const wishlistGames = notes.filter((note) => note.isWishlisted);
+
       if (wishlistGames.length === 0) {
         if (onShowToast) {
           onShowToast("No wishlist items to export.", "error");
@@ -914,31 +944,45 @@ export const useGameManagement = (
         return;
       }
 
-      const csvHeaders = ["Game Name", "Platform", "Genre", "Release Date", "Publisher", "Players"];
+      const csvHeaders = [
+        "Game Name",
+        "Platform",
+        "Genre",
+        "Release Date",
+        "Publisher",
+        "Players",
+      ];
       const csvRows = [csvHeaders];
 
-      wishlistGames.forEach(game => {
+      wishlistGames.forEach((game) => {
         csvRows.push([
           game.name || "",
           game.selectedPlatform?.name || "",
           game.genre || "",
           game.release_date || "",
           game.publisher || "",
-          game.players || ""
+          game.players || "",
         ]);
       });
 
-      const csvContent = csvRows.map(row => 
-        row.map(field => `"${(field || "").toString().replace(/"/g, '""')}"`).join(",")
-      ).join("\n");
+      const csvContent = csvRows
+        .map((row) =>
+          row
+            .map((field) => `"${(field || "").toString().replace(/"/g, '""')}"`)
+            .join(","),
+        )
+        .join("\n");
 
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
-      
+
       if (link.download !== undefined) {
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `wishlist_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute(
+          "download",
+          `wishlist_${new Date().toISOString().split("T")[0]}.csv`,
+        );
         link.style.visibility = "hidden";
         document.body.appendChild(link);
         link.click();
@@ -946,7 +990,9 @@ export const useGameManagement = (
       }
 
       if (onShowToast) {
-        onShowToast(`Wishlist exported! ${wishlistGames.length} games saved to CSV.`);
+        onShowToast(
+          `Wishlist exported! ${wishlistGames.length} games saved to CSV.`,
+        );
       }
     } catch (error) {
       console.error("Error exporting CSV:", error);
@@ -959,8 +1005,8 @@ export const useGameManagement = (
   // Export wishlist as PDF (using HTML to PDF approach)
   const exportWishlistPDF = () => {
     try {
-      const wishlistGames = notes.filter(note => note.isWishlisted);
-      
+      const wishlistGames = notes.filter((note) => note.isWishlisted);
+
       if (wishlistGames.length === 0) {
         if (onShowToast) {
           onShowToast("No wishlist items to export.", "error");
@@ -997,17 +1043,21 @@ export const useGameManagement = (
             <p>Total Games: ${wishlistGames.length}</p>
           </div>
           
-          ${wishlistGames.map((game, index) => `
+          ${wishlistGames
+            .map(
+              (game, index) => `
             <div class="game">
-              <div class="game-title">${index + 1}. ${game.name || 'Unknown Title'}</div>
-              ${game.selectedPlatform ? `<div class="game-detail"><span class="label">Platform:</span> ${game.selectedPlatform.name}</div>` : ''}
-              ${game.genre ? `<div class="game-detail"><span class="label">Genre:</span> ${game.genre}</div>` : ''}
-              ${game.release_date ? `<div class="game-detail"><span class="label">Release Date:</span> ${game.release_date}</div>` : ''}
-              ${game.publisher ? `<div class="game-detail"><span class="label">Publisher:</span> ${game.publisher}</div>` : ''}
-              ${game.players ? `<div class="game-detail"><span class="label">Players:</span> ${game.players}</div>` : ''}
-              ${game.description ? `<div class="game-detail"><span class="label">Description:</span> ${game.description}</div>` : ''}
+              <div class="game-title">${index + 1}. ${game.name || "Unknown Title"}</div>
+              ${game.selectedPlatform ? `<div class="game-detail"><span class="label">Platform:</span> ${game.selectedPlatform.name}</div>` : ""}
+              ${game.genre ? `<div class="game-detail"><span class="label">Genre:</span> ${game.genre}</div>` : ""}
+              ${game.release_date ? `<div class="game-detail"><span class="label">Release Date:</span> ${game.release_date}</div>` : ""}
+              ${game.publisher ? `<div class="game-detail"><span class="label">Publisher:</span> ${game.publisher}</div>` : ""}
+              ${game.players ? `<div class="game-detail"><span class="label">Players:</span> ${game.players}</div>` : ""}
+              ${game.description ? `<div class="game-detail"><span class="label">Description:</span> ${game.description}</div>` : ""}
             </div>
-          `).join('')}
+          `,
+            )
+            .join("")}
           
           <div class="footer">
             <p>Generated by Game Library App • ${new Date().toLocaleString()}</p>
@@ -1017,10 +1067,10 @@ export const useGameManagement = (
       `;
 
       // Open in new window for printing/saving as PDF
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      const printWindow = window.open("", "_blank", "width=800,height=600");
       printWindow.document.write(htmlContent);
       printWindow.document.close();
-      
+
       // Auto-focus and trigger print dialog
       printWindow.onload = () => {
         printWindow.focus();
@@ -1028,12 +1078,17 @@ export const useGameManagement = (
       };
 
       if (onShowToast) {
-        onShowToast(`Wishlist PDF opened! ${wishlistGames.length} games ready to print/save.`);
+        onShowToast(
+          `Wishlist PDF opened! ${wishlistGames.length} games ready to print/save.`,
+        );
       }
     } catch (error) {
       console.error("Error exporting PDF:", error);
       if (onShowToast) {
-        onShowToast("Failed to export wishlist PDF. Please try again.", "error");
+        onShowToast(
+          "Failed to export wishlist PDF. Please try again.",
+          "error",
+        );
       }
     }
   };

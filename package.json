@@ -17,12 +17,16 @@
     "web-vitals": "^2.1.2"
   },
   "scripts": {
-    "start": "vite",
+    "dev": "vite --port 5173",
+    "start": "vite --port 5173",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
     "predeploy": "npm run build",
-    "deploy": "netlify deploy --prod --dir=build"
+    "deploy": "netlify deploy --prod --dir=dist",
+    "netlify:dev": "netlify dev",
+    "netlify:login": "netlify login",
+    "netlify:link": "netlify link"
   },
   "eslintConfig": {
     "extends": [
@@ -44,6 +48,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.1",
+    "netlify-cli": "^17.36.4",
     "vite": "^7.2.6"
   }
 }

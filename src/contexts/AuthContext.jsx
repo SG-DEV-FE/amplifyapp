@@ -1,10 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import netlifyIdentity from "netlify-identity-widget";
-import { 
-  createPersistentToken, 
-  shouldUsePersistentLogin, 
-  clearPersistentLogin,
-  STORAGE_KEYS 
+import {
+  shouldUsePersistentLogin,
+  STORAGE_KEYS,
 } from "../utils/persistentAuth";
 
 const AuthContext = createContext();
@@ -23,31 +21,39 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize Netlify Identity
+    // Initialize Netlify Identity with production site URL
     netlifyIdentity.init({
-      locale: "en",
+      APIUrl: "https://mygaminglibrary.netlify.app/.netlify/identity",
     });
 
     // Check for persistent login first
     const persistentCheck = shouldUsePersistentLogin();
-    
+
     if (persistentCheck.shouldUse) {
       // Restore from persistent token
       const mockUser = {
         id: persistentCheck.tokenData.userId,
         email: persistentCheck.tokenData.email,
         token: {
-          access_token: persistentCheck.tokenData.netlifyToken
-        }
+          access_token: persistentCheck.tokenData.netlifyToken,
+        },
       };
-      
+
       setUser(mockUser);
-      localStorage.setItem(STORAGE_KEYS.NETLIFY_TOKEN, persistentCheck.tokenData.netlifyToken);
-      localStorage.setItem(STORAGE_KEYS.USER_ID, persistentCheck.tokenData.userId);
-      localStorage.setItem(STORAGE_KEYS.REMEMBER_ME_ENABLED, 'true');
+      localStorage.setItem(
+        STORAGE_KEYS.NETLIFY_TOKEN,
+        persistentCheck.tokenData.netlifyToken,
+      );
+      localStorage.setItem(
+        STORAGE_KEYS.USER_ID,
+        persistentCheck.tokenData.userId,
+      );
+      localStorage.setItem(STORAGE_KEYS.REMEMBER_ME_ENABLED, "true");
       checkAdminStatus(mockUser);
-      
-      console.log(`Restored persistent login for ${persistentCheck.tokenData.email}, ${persistentCheck.daysRemaining} days remaining`);
+
+      console.log(
+        `Restored persistent login for ${persistentCheck.tokenData.email}, ${persistentCheck.daysRemaining} days remaining`,
+      );
     } else {
       // Check for current user (regular session)
       const currentUser = netlifyIdentity.currentUser();
@@ -55,7 +61,10 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         setUser(currentUser);
         // Store token for API calls
-        localStorage.setItem(STORAGE_KEYS.NETLIFY_TOKEN, currentUser.token.access_token);
+        localStorage.setItem(
+          STORAGE_KEYS.NETLIFY_TOKEN,
+          currentUser.token.access_token,
+        );
         localStorage.setItem(STORAGE_KEYS.USER_ID, currentUser.id);
         // Check admin status from user metadata or app_metadata
         checkAdminStatus(currentUser);
@@ -86,7 +95,7 @@ export const AuthProvider = ({ children }) => {
 
     // Conditional auto-logout logic - only if not using persistent login
     const isUsingPersistentLogin = () => {
-      return localStorage.getItem(STORAGE_KEYS.REMEMBER_ME_ENABLED) === 'true';
+      return localStorage.getItem(STORAGE_KEYS.REMEMBER_ME_ENABLED) === "true";
     };
 
     // Auto-logout on page leave/close/refresh (only for non-persistent sessions)
@@ -201,19 +210,19 @@ export const AuthProvider = ({ children }) => {
       setUser(user);
       localStorage.setItem(STORAGE_KEYS.NETLIFY_TOKEN, user.token.access_token);
       localStorage.setItem(STORAGE_KEYS.USER_ID, user.id);
-      
+
       // Handle persistent login
       if (rememberMe) {
         const persistentToken = createPersistentToken(user, 90);
         localStorage.setItem(STORAGE_KEYS.PERSISTENT_TOKEN, persistentToken);
-        localStorage.setItem(STORAGE_KEYS.REMEMBER_ME_ENABLED, 'true');
-        console.log('Persistent login enabled for 90 days');
+        localStorage.setItem(STORAGE_KEYS.REMEMBER_ME_ENABLED, "true");
+        console.log("Persistent login enabled for 90 days");
       } else {
         // Clear any existing persistent tokens
         clearPersistentLogin();
         localStorage.removeItem(STORAGE_KEYS.REMEMBER_ME_ENABLED);
       }
-      
+
       checkAdminStatus(user);
 
       return { user, error: null };
@@ -234,21 +243,21 @@ export const AuthProvider = ({ children }) => {
 
       // Clear persistent login tokens
       clearPersistentLogin();
-      
+
       // Aggressively clear all storage
       localStorage.clear();
       sessionStorage.clear();
 
       // Sign out through Netlify Identity
       netlifyIdentity.logout();
-      
-      console.log('User signed out, all tokens cleared');
+
+      console.log("User signed out, all tokens cleared");
     } catch (error) {
       // Ensure state is cleared even on error
       setUser(null);
       setIsAdmin(false);
       setLoading(false);
-      
+
       // Still clear persistent tokens on error
       clearPersistentLogin();
       localStorage.clear();
@@ -272,7 +281,7 @@ export const AuthProvider = ({ children }) => {
     return {
       isEnabled: persistentCheck.shouldUse,
       daysRemaining: persistentCheck.daysRemaining || 0,
-      email: persistentCheck.tokenData?.email || null
+      email: persistentCheck.tokenData?.email || null,
     };
   };
 
@@ -280,7 +289,7 @@ export const AuthProvider = ({ children }) => {
   const disablePersistentLogin = () => {
     clearPersistentLogin();
     localStorage.removeItem(STORAGE_KEYS.REMEMBER_ME_ENABLED);
-    console.log('Persistent login disabled');
+    console.log("Persistent login disabled");
   };
 
   const value = {
