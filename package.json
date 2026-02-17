@@ -6,9 +6,6 @@
     "@ericblade/quagga2": "^1.8.4",
     "@netlify/blobs": "^10.1.0",
     "@netlify/functions": "^5.0.0",
-    "@testing-library/jest-dom": "^6.4.8",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.5.2",
     "lucide-react": "^0.562.0",
     "netlify-identity-widget": "^1.9.2",
     "react": "^19.2.1",
@@ -21,19 +18,14 @@
     "start": "vite --port 5173",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest",
+
     "predeploy": "npm run build",
     "deploy": "netlify deploy --prod --dir=dist",
     "netlify:dev": "netlify dev",
     "netlify:login": "netlify login",
     "netlify:link": "netlify link"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
+
   "browserslist": {
     "production": [
       ">0.2%",
@@ -48,7 +40,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.1",
-    "netlify-cli": "^17.36.4",
+    "netlify-cli": "^23.15.1",
     "vite": "^7.2.6"
   }
 }
