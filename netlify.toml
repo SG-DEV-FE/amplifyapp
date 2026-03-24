@@ -24,4 +24,5 @@
 
 [build.environment]
   CI = "false"
-  VITE_RAWG_API_KEY = "ab751c315cac41738ff2e1a51ae8435e"
+  # VITE_RAWG_API_KEY is set in Netlify UI Environment Variables
+  # Never commit API keys to version control!
