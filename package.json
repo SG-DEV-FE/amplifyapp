@@ -1,31 +1,26 @@
 {
-  "name": "amplifyapp",
+  "name": "mygaminglibrary",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@ericblade/quagga2": "^1.8.4",
     "@netlify/blobs": "^10.1.0",
     "@netlify/functions": "^5.0.0",
     "lucide-react": "^0.562.0",
     "netlify-identity-widget": "^1.9.2",
     "react": "^19.2.1",
-    "react-device-detect": "^2.2.3",
-    "react-dom": "^19.2.1",
-    "web-vitals": "^2.1.2"
+    "react-dom": "^19.2.1"
   },
   "scripts": {
     "dev": "vite --port 5173",
     "start": "vite --port 5173",
     "build": "vite build",
     "preview": "vite preview",
-
     "predeploy": "npm run build",
     "deploy": "netlify deploy --prod --dir=dist",
     "netlify:dev": "netlify dev",
     "netlify:login": "netlify login",
     "netlify:link": "netlify link"
   },
-
   "browserslist": {
     "production": [
       ">0.2%",

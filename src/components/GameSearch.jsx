@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Search, X } from "lucide-react";
-// import { isMobile } from "react-device-detect"; (barcode scanner removed)
 import psLogo from "../ps-logo.svg";
 
 // Shimmer placeholder component
