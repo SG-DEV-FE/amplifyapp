@@ -297,7 +297,7 @@ const GameSearch = ({
                             `Released: ${new Date(game.released).getFullYear()}`}
                           {game.genres &&
                             game.genres.length > 0 &&
-                            ` • ${game.genres.map((g) => g.name).join(", ")}`}
+                            ` â€¢ ${game.genres.map((g) => g.name).join(", ")}`}
                         </p>
                         <p className="text-xs text-gray-500">
                           {game.platforms
