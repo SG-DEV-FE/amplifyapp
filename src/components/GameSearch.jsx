@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import psLogo from "../ps-logo.svg";
+import { rawgSearchGames } from "../utils/rawgApi";
 
 // Shimmer placeholder component
 const ShimmerImage = ({ width = "w-16", height = "h-16", className = "" }) => (
@@ -48,9 +49,6 @@ const GameImage = ({ src, alt, className, fallbackSrc = psLogo }) => {
   );
 };
 
-const RAWG_API_KEY = import.meta.env.VITE_RAWG_API_KEY || "";
-const RAWG_BASE_URL = "https://api.rawg.io/api";
-
 const GameSearch = ({
   onGameAdd,
   onToggleManualForm,
@@ -94,15 +92,6 @@ const GameSearch = ({
       return;
     }
 
-    if (!RAWG_API_KEY) {
-      setSearchResults([]);
-      setSearchError(
-        "Game search is unavailable because the RAWG API key is not configured.",
-      );
-      setShowSearchResults(true);
-      return;
-    }
-
     const requestId = latestSearchRequestRef.current + 1;
     latestSearchRequestRef.current = requestId;
 
@@ -113,22 +102,10 @@ const GameSearch = ({
     setIsSearching(true);
     setSearchError("");
     try {
-      const response = await fetch(
-        `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-          trimmedQuery,
-        )}&page_size=10`,
-        { signal: controller.signal },
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          response.status === 401 || response.status === 403
-            ? "Game search is unavailable because the RAWG API key was rejected."
-            : "Game search failed. Please try again.",
-        );
-      }
-
-      const data = await response.json();
+      const data = await rawgSearchGames(trimmedQuery, {
+        pageSize: 10,
+        signal: controller.signal,
+      });
 
       if (requestId !== latestSearchRequestRef.current) {
         return;

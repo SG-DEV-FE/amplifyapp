@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { PlusSquare } from "lucide-react";
-
-const RAWG_API_KEY = import.meta.env.VITE_RAWG_API_KEY || "";
-const RAWG_BASE_URL = "https://api.rawg.io/api";
+import { rawgGetPlatforms } from "../utils/rawgApi";
 
 // Common gaming platforms (fallback if API fails)
 const COMMON_PLATFORMS = [
@@ -61,13 +59,8 @@ const GameForm = ({
 
       setPlatformsLoading(true);
       try {
-        const response = await fetch(
-          `${RAWG_BASE_URL}/platforms?key=${RAWG_API_KEY}&page_size=50`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setAvailablePlatforms(data.results || COMMON_PLATFORMS);
-        }
+        const data = await rawgGetPlatforms({ pageSize: 50 });
+        setAvailablePlatforms(data.results || COMMON_PLATFORMS);
       } catch (error) {
         console.error("Error fetching platforms:", error);
         // Keep COMMON_PLATFORMS as fallback

@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from "react";
-
-const RAWG_API_KEY = import.meta.env.VITE_RAWG_API_KEY || "";
-const RAWG_BASE_URL = "https://api.rawg.io/api";
+import {
+  rawgGetGameDetails,
+  rawgSearchGames,
+} from "../utils/rawgApi";
 
 // Helper function to make authenticated requests to Netlify Functions
 const fetchWithAuth = async (url, options = {}) => {
@@ -132,12 +133,7 @@ export const useGameManagement = (
       let completeGameData = game;
       if (game.id && (!game.publishers || game.publishers.length === 0)) {
         try {
-          const detailResponse = await fetch(
-            `${RAWG_BASE_URL}/games/${game.id}?key=${RAWG_API_KEY}`,
-          );
-          if (detailResponse.ok) {
-            completeGameData = await detailResponse.json();
-          }
+          completeGameData = await rawgGetGameDetails(game.id);
         } catch (err) {
           console.warn("Failed to fetch complete game data:", err);
           // Continue with original data if detail fetch fails
@@ -622,17 +618,7 @@ export const useGameManagement = (
       for (const game of gamesWithoutImages) {
         try {
           // Search RAWG for this game
-          const response = await fetch(
-            `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-              game.name,
-            )}&page_size=5`,
-          );
-
-          if (!response.ok) {
-            continue;
-          }
-
-          const data = await response.json();
+          const data = await rawgSearchGames(game.name, { pageSize: 5 });
           const searchResults = data.results || [];
 
           // Find the best match (exact name match or first result)
@@ -723,17 +709,7 @@ export const useGameManagement = (
       for (const game of gamesWithMissingInfo) {
         try {
           // Search RAWG for this game to get complete details
-          const searchResponse = await fetch(
-            `${RAWG_BASE_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(
-              game.name,
-            )}&page_size=5`,
-          );
-
-          if (!searchResponse.ok) {
-            continue;
-          }
-
-          const searchData = await searchResponse.json();
+          const searchData = await rawgSearchGames(game.name, { pageSize: 5 });
           const searchResults = searchData.results || [];
 
           // Find the best match
@@ -747,43 +723,32 @@ export const useGameManagement = (
 
           if (bestMatch) {
             // Get detailed game information
-            const detailResponse = await fetch(
-              `${RAWG_BASE_URL}/games/${bestMatch.id}?key=${RAWG_API_KEY}`,
-            );
+            const detailData = await rawgGetGameDetails(bestMatch.id);
 
-            if (detailResponse.ok) {
-              const detailData = await detailResponse.json();
+            // Prepare updated game data
+            const updatedGameData = {
+              ...game,
+              publisher:
+                game.publisher && game.publisher !== "Unknown"
+                  ? game.publisher
+                  : detailData.publishers?.[0]?.name || "Unknown",
+              genre:
+                game.genre || detailData.genres?.map((g) => g.name).join(", ") || "",
+              release_date: game.release_date || detailData.released || "",
+              rawgId: detailData.id,
+              // Only update image if game doesn't have one
+              image: game.image || detailData.background_image || "",
+            };
 
-              // Prepare updated game data
-              const updatedGameData = {
-                ...game,
-                publisher:
-                  game.publisher && game.publisher !== "Unknown"
-                    ? game.publisher
-                    : detailData.publishers?.[0]?.name || "Unknown",
-                genre:
-                  game.genre ||
-                  detailData.genres?.map((g) => g.name).join(", ") ||
-                  "",
-                release_date: game.release_date || detailData.released || "",
-                rawgId: detailData.id,
-                // Only update image if game doesn't have one
-                image: game.image || detailData.background_image || "",
-              };
+            // Update the game in the database
+            const updateResponse = await fetchWithAuth(`/api/games?id=${game.id}`, {
+              method: "PUT",
+              body: JSON.stringify(updatedGameData),
+            });
 
-              // Update the game in the database
-              const updateResponse = await fetchWithAuth(
-                `/api/games?id=${game.id}`,
-                {
-                  method: "PUT",
-                  body: JSON.stringify(updatedGameData),
-                },
-              );
-
-              if (updateResponse) {
-                updatedCount++;
-                updatedGames.push(updatedGameData);
-              }
+            if (updateResponse) {
+              updatedCount++;
+              updatedGames.push(game.name);
             }
           }
 
