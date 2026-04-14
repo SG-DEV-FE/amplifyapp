@@ -1,6 +1,6 @@
 const RAWG_BASE_URL = "https://api.rawg.io/api";
 
-const ENV_KEY_CANDIDATES = ["RAWG_API_KEY", "VITE_RAWG_API_KEY"];
+const ENV_KEY_CANDIDATES = ["REACT_APP_RAWG_API_KEY", "RAWG_API_KEY", "VITE_RAWG_API_KEY"];
 
 const pickConfiguredKey = (values = []) => {
   for (const value of values) {
