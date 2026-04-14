@@ -1,7 +1,37 @@
 const RAWG_BASE_URL = "https://api.rawg.io/api";
 
-const getRawgApiKey = () =>
-  process.env.RAWG_API_KEY || process.env.VITE_RAWG_API_KEY || "";
+const ENV_KEY_CANDIDATES = ["RAWG_API_KEY", "VITE_RAWG_API_KEY"];
+
+const pickConfiguredKey = (values = []) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return "";
+};
+
+const getRawgApiKey = (context) => {
+  const netlifyEnvValues = [];
+
+  // Netlify runtime env access can differ between function runtimes.
+  if (typeof Netlify !== "undefined" && Netlify?.env?.get) {
+    for (const key of ENV_KEY_CANDIDATES) {
+      netlifyEnvValues.push(Netlify.env.get(key));
+    }
+  }
+
+  if (context?.env?.get) {
+    for (const key of ENV_KEY_CANDIDATES) {
+      netlifyEnvValues.push(context.env.get(key));
+    }
+  }
+
+  const processEnvValues = ENV_KEY_CANDIDATES.map((key) => process.env[key]);
+
+  return pickConfiguredKey([...netlifyEnvValues, ...processEnvValues]);
+};
 
 const normalizePath = (path = "") => path.replace(/^\/+/, "");
 
@@ -16,12 +46,12 @@ const jsonResponse = (status, body) =>
     },
   });
 
-const handler = async (req) => {
+const handler = async (req, context) => {
   if (req.method !== "GET") {
     return jsonResponse(405, { error: "Method not allowed" });
   }
 
-  const apiKey = getRawgApiKey();
+  const apiKey = getRawgApiKey(context);
   if (!apiKey) {
     return jsonResponse(503, {
       error: "RAWG API key is not configured on the server.",
