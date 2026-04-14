@@ -57,28 +57,30 @@ const GameSearch = ({
   onUpdateMissingInformation,
   hasGames,
   isUpdatingImages,
-  existingGames = [], // Add this prop to track existing games
-  isDemo = false, // Demo mode flag
+  existingGames = [],
+  isDemo = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [selectedGameForPlatforms, setSelectedGameForPlatforms] =
-    useState(null);
   const [searchError, setSearchError] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [selectedGameForPlatforms, setSelectedGameForPlatforms] =
-    useState(null);
+  const [selectedGameForPlatforms, setSelectedGameForPlatforms] = useState(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
   const [addToWishlist, setAddToWishlist] = useState(false);
   const searchAbortControllerRef = useRef(null);
-  const latestSearchRequestRef = useRef(0
+  const latestSearchRequestRef = useRef(0);
+
+  // Helper function to check if a game has been recently added
+  const isGameRecentlyAdded = (gameId) => {
     return existingGames.some(
       (game) => game.id === gameId || game.rawgId === gameId,
     );
   };
-const trimmedQuery = query.trim();
+
+  // Search games from RAWG API
+  const searchGames = async (query) => {
+    const trimmedQuery = query.trim();
 
     if (!trimmedQuery) {
       searchAbortControllerRef.current?.abort();
@@ -110,7 +112,29 @@ const trimmedQuery = query.trim();
 
       setSearchResults(data.results || []);
       setShowSearchResults(true);
-    } catctrimmedQuery = searchQuery.trim();
+    } catch (error) {
+      if (error.name === "AbortError") {
+        return;
+      }
+
+      if (requestId !== latestSearchRequestRef.current) {
+        return;
+      }
+
+      console.error("Error searching games:", error);
+      setSearchResults([]);
+      setSearchError(error.message || "Game search failed. Please try again.");
+      setShowSearchResults(true);
+    } finally {
+      if (requestId === latestSearchRequestRef.current) {
+        setIsSearching(false);
+      }
+    }
+  };
+
+  // Handle search input with debounce
+  useEffect(() => {
+    const trimmedQuery = searchQuery.trim();
 
     if (!trimmedQuery) {
       searchAbortControllerRef.current?.abort();
@@ -132,32 +156,7 @@ const trimmedQuery = query.trim();
     return () => {
       searchAbortControllerRef.current?.abort();
     };
-  }, [
-
-      console.error("Error searching games:", error);
-      setSearchResults([]);
-      setSearchError(error.message || "Game search failed. Please try again.");
-      setShowSearchResults(true);
-    } finally {
-      if (requestId === latestSearchRequestRef.current) {
-        setIsSearching(false);
-      }earching games:", error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Handle search input with debounce
-  useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      if (searchQuery) {
-        searchGames(searchQuery);
-      }
-    }, 500);
-
-    return () => clearTimeout(delayedSearch);
-  }, [searchQuery]);
+  }, []);
 
   // Handle adding game from search results
   const handleSelectPlatforms = (game) => {
@@ -182,13 +181,9 @@ const trimmedQuery = query.trim();
       const isSelected = prev.some(
         (p) => p.platform.id === platform.platform.id,
       );
-    latestSearchRequestRef.current += 1;
-    searchAbortControllerRef.current?.abort();
-    setSearchQuery("");
-    setSearchResults([]);
-    setSearchError("");
-    setShowSearchResults(false);
-    setIsSearching
+      if (isSelected) {
+        return prev.filter((p) => p.platform.id !== platform.platform.id);
+      } else {
         return [...prev, platform];
       }
     });
@@ -198,22 +193,19 @@ const trimmedQuery = query.trim();
     if (!selectedGameForPlatforms || selectedPlatforms.length === 0) return;
 
     try {
-      // Add the game once for each selected platform
       for (const platform of selectedPlatforms) {
         const gameWithPlatform = {
           ...selectedGameForPlatforms,
           selectedPlatform: platform.platform,
           platformSpecific: true,
-          isWishlisted: addToWishlist, // Add wishlist flag
+          isWishlisted: addToWishlist,
         };
         await onGameAdd(gameWithPlatform);
       }
 
-      // Reset platform selection state but keep search results open
       setSelectedGameForPlatforms(null);
       setSelectedPlatforms([]);
-      setAddToWishlist(false); // Reset wishlist flag
-      // Don't clear search query or results to allow adding more games
+      setAddToWishlist(false);
     } catch (error) {
       console.error("Error adding game:", error);
     }
@@ -226,9 +218,13 @@ const trimmedQuery = query.trim();
   };
 
   const clearSearch = () => {
+    latestSearchRequestRef.current += 1;
+    searchAbortControllerRef.current?.abort();
     setSearchQuery("");
     setSearchResults([]);
+    setSearchError("");
     setShowSearchResults(false);
+    setIsSearching(false);
     setSelectedGameForPlatforms(null);
     setSelectedPlatforms([]);
     setAddToWishlist(false);
@@ -298,12 +294,10 @@ const trimmedQuery = query.trim();
                         </div>
                         <p className="text-sm text-gray-600">
                           {game.released &&
-                            `Released: ${new Date(
-                              game.released,
-                            ).getFullYear()}`}
+                            `Released: ${new Date(game.released).getFullYear()}`}
                           {game.genres &&
                             game.genres.length > 0 &&
-                            ` â€¢ ${game.genres.map((g) => g.name).join(", ")}`}
+                            ` • ${game.genres.map((g) => g.name).join(", ")}`}
                         </p>
                         <p className="text-xs text-gray-500">
                           {game.platforms
@@ -405,19 +399,8 @@ const trimmedQuery = query.trim();
                     onClick={handleCancelPlatformSelection}
                     className="px-3 py-1.5 text-gray-600 text-sm rounded hover:bg-gray-100 focus:outline-none"
                   >
-            !isSearching &&
-            searchError &&
-            searchQuery &&
-            !selectedGameForPlatforms && (
-              <div className="absolute top-full left-0 right-0 bg-white border border-red-200 rounded-b-lg shadow-lg p-4 text-center z-10">
-                <p className="text-red-600">{searchError}</p>
-              </div>
-            )}
-
-          {showSearchResults &&
-            searchResults.length === 0 &&
-            !isSearching &&
-            !searchErroron>
+                    Cancel
+                  </button>
                   <button
                     onClick={handleConfirmAddGame}
                     disabled={selectedPlatforms.length === 0}
@@ -435,8 +418,19 @@ const trimmedQuery = query.trim();
           )}
 
           {showSearchResults &&
+            !isSearching &&
+            searchError &&
+            searchQuery &&
+            !selectedGameForPlatforms && (
+              <div className="absolute top-full left-0 right-0 bg-white border border-red-200 rounded-b-lg shadow-lg p-4 text-center z-10">
+                <p className="text-red-600">{searchError}</p>
+              </div>
+            )}
+
+          {showSearchResults &&
             searchResults.length === 0 &&
             !isSearching &&
+            !searchError &&
             searchQuery &&
             !selectedGameForPlatforms && (
               <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-b-lg shadow-lg p-4 text-center">
