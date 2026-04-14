@@ -187,10 +187,15 @@ const GameLibrary = ({
   const [selectedPlatform, setSelectedPlatform] = useState("all");
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
 
-  // Get unique platforms from library games only (exclude wishlist items for platform filter)
+  const handleWishlistToggle = (checked) => {
+    setShowWishlistOnly(checked);
+    setSelectedPlatform("all");
+  };
+
+  // Get unique platforms based on current view (library or wishlist)
   const availablePlatforms = useMemo(() => {
     const platforms = notes
-      .filter((note) => note.selectedPlatform && !note.isWishlisted) // Only include non-wishlist games
+      .filter((note) => note.selectedPlatform && (showWishlistOnly ? note.isWishlisted : !note.isWishlisted))
       .map((note) => note.selectedPlatform)
       .reduce((acc, platform) => {
         if (!acc.find((p) => p.id === platform.id)) {
@@ -200,7 +205,7 @@ const GameLibrary = ({
       }, []);
 
     return platforms.sort((a, b) => a.name.localeCompare(b.name));
-  }, [notes]);
+  }, [notes, showWishlistOnly]);
 
   // Filter and sort games based on selected platform and wishlist
   const filteredNotes = useMemo(() => {
@@ -267,7 +272,7 @@ const GameLibrary = ({
                 <input
                   type="checkbox"
                   checked={showWishlistOnly}
-                  onChange={(e) => setShowWishlistOnly(e.target.checked)}
+                  onChange={(e) => handleWishlistToggle(e.target.checked)}
                   className="form-checkbox h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
                 />
                 <span className="ml-2 text-white text-sm font-medium">
@@ -301,14 +306,14 @@ const GameLibrary = ({
                 >
                   <option value="all">
                     All Platforms (
-                    {notes.filter((note) => !note.isWishlisted).length})
+                    {notes.filter((note) => showWishlistOnly ? note.isWishlisted : !note.isWishlisted).length})
                   </option>
                   {availablePlatforms.map((platform) => {
                     const count = notes.filter(
                       (note) =>
                         note.selectedPlatform &&
                         note.selectedPlatform.id === platform.id &&
-                        !note.isWishlisted,
+                        (showWishlistOnly ? note.isWishlisted : !note.isWishlisted),
                     ).length;
                     return (
                       <option key={platform.id} value={platform.id.toString()}>
@@ -335,14 +340,14 @@ const GameLibrary = ({
                   }`}
                 >
                   All Platforms (
-                  {notes.filter((note) => !note.isWishlisted).length})
+                  {notes.filter((note) => showWishlistOnly ? note.isWishlisted : !note.isWishlisted).length})
                 </button>
                 {availablePlatforms.map((platform) => {
                   const count = notes.filter(
                     (note) =>
                       note.selectedPlatform &&
                       note.selectedPlatform.id === platform.id &&
-                      !note.isWishlisted,
+                      (showWishlistOnly ? note.isWishlisted : !note.isWishlisted),
                   ).length;
                   return (
                     <button
