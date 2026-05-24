@@ -6,26 +6,24 @@
     "@ericblade/quagga2": "^1.8.4",
     "@netlify/blobs": "^10.1.0",
     "@netlify/functions": "^5.0.0",
-    "lucide-react": "^0.562.0",
-    "netlify-identity-widget": "^1.9.2",
+    "lucide-react": "^1.16.0",
+    "netlify-identity-widget": "^2.0.3",
     "react": "^19.2.1",
     "react-device-detect": "^2.2.3",
     "react-dom": "^19.2.1",
-    "web-vitals": "^2.1.2"
+    "web-vitals": "^5.2.0"
   },
   "scripts": {
     "dev": "vite --port 5173",
     "start": "vite --port 5173",
     "build": "vite build",
     "preview": "vite preview",
-
     "predeploy": "npm run build",
     "deploy": "netlify deploy --prod --dir=dist",
     "netlify:dev": "netlify dev",
     "netlify:login": "netlify login",
     "netlify:link": "netlify link"
   },
-
   "browserslist": {
     "production": [
       ">0.2%",
@@ -39,8 +37,8 @@
     ]
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.1.1",
-    "netlify-cli": "^23.15.1",
-    "vite": "^7.2.6"
+    "@vitejs/plugin-react": "^6.0.2",
+    "netlify-cli": "^26.0.2",
+    "vite": "^8.0.14"
   }
 }
